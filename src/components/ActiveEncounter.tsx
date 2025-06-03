@@ -134,7 +134,7 @@ export default function ActiveEncounter({
 
   const handleDamageApply = (playerId: string, damage: number) => {
     const updatedPlayers = players.map((p) =>
-      p.id === playerId ? { ...p, currentHp: p.currentHp - damage } : p
+      p.id === playerId ? { ...p, currentHp: Math.max(0, p.currentHp - damage) } : p
     );
     updateEncounterInCampaign({ players: updatedPlayers });
     setLastEditedPlayerId(playerId);
@@ -150,7 +150,6 @@ export default function ActiveEncounter({
 
   const handleToggleRosterEditMode = () => {
     setRosterEditMode(prev => !prev);
-    // Toasts removed as per user request
   };
 
   const handleInitiateDeletePlayer = (player: Player) => {
@@ -243,12 +242,13 @@ export default function ActiveEncounter({
         </Card>
       )}
 
-      {players.length > 0 && (stage === 'PLAYER_SETUP' || stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || rosterEditMode) && (
+      {players.length > 0 && (stage === 'PLAYER_SETUP' || stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || rosterEditMode || stage === 'COMBAT_ACTIVE') && (
         <div className="mb-8 animate-fade-in">
           <h2 className="text-xl font-headline font-semibold mb-3">
-            {stage === 'COMBAT_ACTIVE' ? 'Combat Active:' : 
-             stage === 'PRE_COMBAT' ? 'Initiative Order:' : 
+            {stage === 'COMBAT_ACTIVE' && !rosterEditMode ? 'Combat Active:' : 
+             stage === 'PRE_COMBAT' && !rosterEditMode ? 'Initiative Order:' : 
              'Current Combatants:'}
+             {rosterEditMode && ' (Editing Roster)'}
           </h2>
           {players.map((p) => (
             <PlayerRow
@@ -259,7 +259,7 @@ export default function ActiveEncounter({
               onInitiativeChange={handleInitiativeChange}
               onDamageApply={handleDamageApply} 
               onHealApply={handleHealApply}
-              showDeleteButton={showDeleteButtonOnRow && (stage !== 'COMBAT_ACTIVE' || p.currentHp > 0)} // Only show delete if not downed in combat
+              showDeleteButton={showDeleteButtonOnRow && (stage !== 'COMBAT_ACTIVE' || p.currentHp > 0)}
               onInitiateDelete={handleInitiateDeletePlayer}
             />
           ))}
@@ -279,27 +279,6 @@ export default function ActiveEncounter({
           <Button onClick={confirmInitiatives} size="lg" disabled={players.length === 0}>
             <ListOrdered className="mr-2 h-5 w-5" /> Confirm Initiatives & Order
           </Button>
-        </div>
-      )}
-
-      {(stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') && !rosterEditMode && (
-         <div className="mb-8 animate-fade-in">
-          <h2 className="text-xl font-headline font-semibold mb-3">
-            {stage === 'COMBAT_ACTIVE' ? `Combat Active!` : `Initiative Order:`}
-          </h2>
-          {players.map((p) => (
-            <PlayerRow
-              key={p.id}
-              player={p}
-              stage={stage}
-              isHighlighted={p.id === lastEditedPlayerId}
-              onInitiativeChange={handleInitiativeChange} 
-              onDamageApply={handleDamageApply}
-              onHealApply={handleHealApply}
-              showDeleteButton={showDeleteButtonOnRow && p.currentHp > 0} 
-              onInitiateDelete={handleInitiateDeletePlayer}
-            />
-          ))}
         </div>
       )}
       
@@ -331,7 +310,7 @@ export default function ActiveEncounter({
             <p className="text-muted-foreground mb-4">No combatants added to "{encounterName}" yet.</p>
             <Button onClick={() => {
                 updateEncounterInCampaign({stage: 'PLAYER_SETUP'});
-                if (!rosterEditMode) setRosterEditMode(true); // Enter edit mode if adding from empty
+                if (!rosterEditMode) setRosterEditMode(true); 
                  toast({ title: "Add Combatants", description: `Switched to player setup for "${encounterName}".` });
             }}>
                 Add Combatants
@@ -360,5 +339,3 @@ export default function ActiveEncounter({
     </div>
   );
 }
-
-    
