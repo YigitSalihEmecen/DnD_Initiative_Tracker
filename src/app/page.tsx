@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
-import type { Encounter, Player, AppStage } from '@/types';
+import type { Encounter, Player, AppStage, EncounterType } from '@/types';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
 import { useToast } from "@/hooks/use-toast"; 
@@ -24,11 +24,21 @@ export default function Home() {
       const storedEncounters = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedEncounters) {
         try {
-          const parsedEncounters: Encounter[] = JSON.parse(storedEncounters);
-          if (Array.isArray(parsedEncounters) && parsedEncounters.every(enc => typeof enc.id === 'string' && typeof enc.name === 'string' && typeof enc.lastModified === 'number')) {
+          const parsedEncounters: Encounter[] = JSON.parse(storedEncounters).map((enc: any) => ({
+            ...enc,
+            type: enc.type || 'local', // Default to 'local' if type is missing
+            lastModified: enc.lastModified || Date.now() // Ensure lastModified exists
+          }));
+
+          if (Array.isArray(parsedEncounters) && parsedEncounters.every(enc => 
+              typeof enc.id === 'string' && 
+              typeof enc.name === 'string' && 
+              typeof enc.lastModified === 'number' &&
+              (enc.type === 'local' || enc.type === 'online')
+            )) {
             setEncounters(parsedEncounters.sort((a,b) => b.lastModified - a.lastModified));
           } else {
-            console.warn("Stored encounters data is malformed. Resetting.");
+            console.warn("Stored encounters data is malformed or missing fields. Resetting.");
             localStorage.removeItem(LOCAL_STORAGE_KEY); 
             setEncounters([]);
             toast({ 
@@ -49,7 +59,7 @@ export default function Home() {
         }
       }
     }
-  }, [isClient]);
+  }, [isClient]); // Removed toast from dependencies
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
@@ -57,17 +67,23 @@ export default function Home() {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(encounters));
       } catch (error) {
         console.error("Failed to save encounters to localStorage", error);
+         toast({
+            title: "Error Saving Data",
+            description: "Could not save encounters. Changes might not persist.",
+            variant: "destructive",
+          });
       }
     }
-  }, [encounters, isClient]);
+  }, [encounters, isClient]); // Removed toast from dependencies
 
-  const handleCreateEncounter = (name: string): string => {
+  const handleCreateEncounter = (name: string, type: EncounterType): string => {
     const newEncounter: Encounter = {
       id: crypto.randomUUID(),
       name: name || `Encounter ${encounters.length + 1}`,
       players: [],
       stage: 'PLAYER_SETUP',
       lastModified: Date.now(),
+      type: type,
     };
     setEncounters(prev => [newEncounter, ...prev].sort((a,b) => b.lastModified - a.lastModified));
     return newEncounter.id;
@@ -103,7 +119,7 @@ export default function Home() {
         description: `"${encounterToDelete.name}" has been removed.`,
       });
     } catch (error) {
-      toast({
+       toast({
         title: "Deletion Error",
         description: "An unexpected error occurred while deleting the encounter.",
         variant: "destructive",
