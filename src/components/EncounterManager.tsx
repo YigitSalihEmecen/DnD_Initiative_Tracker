@@ -64,7 +64,7 @@ export default function EncounterManager({
   
   const getStageDisplay = (stage?: string) => {
     if (!stage) return 'Unknown Stage';
-    return stage.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase());
+    return stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
   if (!isClient) {
@@ -158,7 +158,7 @@ export default function EncounterManager({
               </Card>
             ))}
           </CardContent>
-          <div className="p-4 border-t border-border">
+          <CardFooter className="p-4 border-t border-border">
              <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -182,7 +182,7 @@ export default function EncounterManager({
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
-          </div>
+          </CardFooter>
         </Card>
       )}
        {encounters.length === 0 && (
@@ -193,7 +193,7 @@ export default function EncounterManager({
           <CardContent>
             <p className="text-muted-foreground text-lg">It's quiet here... too quiet.</p>
             <p className="text-muted-foreground mt-1">Create your first encounter above to get started!</p>
-            <img data-ai-hint="empty chest treasure" src="https://placehold.co/300x200.png" alt="Empty chest illustration" className="mx-auto mt-6 rounded-md opacity-70" />
+            
           </CardContent>
         </Card>
       )}
