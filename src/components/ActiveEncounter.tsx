@@ -171,7 +171,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
   }, [stage, rosterEditMode]);
 
 
-  const canEditRoster = players.length > 0 && stage !== 'COMBAT_ACTIVE';
+  const canEditRoster = stage !== 'COMBAT_ACTIVE'; // Changed condition here
   const showDeleteButtonOnRow = rosterEditMode && stage !== 'COMBAT_ACTIVE';
 
 
@@ -325,4 +325,3 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     </div>
   );
 }
-
