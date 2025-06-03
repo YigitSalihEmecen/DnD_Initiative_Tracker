@@ -226,7 +226,7 @@ export default function EncounterManager({
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-3xl font-headline">
-              <ListChecks size={32} /> Encounters in "{campaign.name}"
+              <ListChecks size={32} /> Encounters
           </CardTitle>
           <CardDescription className="text-base">Jump back into the action or manage your saved scenarios for this campaign.</CardDescription>
         </CardHeader>
