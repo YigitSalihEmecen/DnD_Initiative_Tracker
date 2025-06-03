@@ -218,20 +218,20 @@ export default function ActiveEncounter({
             <form onSubmit={handleAddPlayer} className={`grid grid-cols-1 sm:grid-cols-2 ${formGridColsClass} gap-4 items-end`}>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="playerName" className="text-sm font-medium">Name</label>
-                <Input id="playerName" value={playerName} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerName(e.target.value)} placeholder="e.g., Orc Raider" required />
+                <Input id="playerName" value={playerName} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerName(e.target.value)} placeholder="..." required />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="playerAC" className="text-sm font-medium">Armor Class (AC)</label>
-                <Input id="playerAC" type="number" value={playerAC} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerAC(e.target.value)} placeholder="e.g., 13" required min="0"/>
+                <Input id="playerAC" type="number" value={playerAC} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerAC(e.target.value)} placeholder="..." required min="0"/>
               </div>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="playerHP" className="text-sm font-medium">Hit Points (HP)</label>
-                <Input id="playerHP" type="number" value={playerHP} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerHP(e.target.value)} placeholder="e.g., 15" required min="1"/>
+                <Input id="playerHP" type="number" value={playerHP} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerHP(e.target.value)} placeholder="..." required min="1"/>
               </div>
               {showInitiativeInputFieldInAddForm && (
                 <div className="flex flex-col gap-1.5">
                   <label htmlFor="playerInitiative" className="text-sm font-medium">Initiative</label>
-                  <Input id="playerInitiative" type="number" value={playerInitiative} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerInitiative(e.target.value)} placeholder="e.g., 18" required />
+                  <Input id="playerInitiative" type="number" value={playerInitiative} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerInitiative(e.target.value)} placeholder="..." required />
                 </div>
               )}
               <Button type="submit" className="w-full sm:w-auto md:self-end h-10">
