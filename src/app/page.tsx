@@ -4,7 +4,7 @@ import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { Encounter, Player, AppStage } from '@/types';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
-import { Toaster } from "@/components/ui/toaster";
+// Toaster is already in layout.tsx, so it's not needed here.
 
 const LOCAL_STORAGE_KEY = 'encounterFlowApp_encounters_v1'; // Added versioning to key
 
@@ -92,7 +92,7 @@ export default function Home() {
           </svg>
           <p className="text-muted-foreground">Loading EncounterFlow...</p>
         </div>
-        <Toaster />
+        {/* <Toaster /> Removed from here */}
       </main>
     );
   }
@@ -114,7 +114,7 @@ export default function Home() {
           onExitEncounter={handleExitEncounter}
         />
       )}
-      <Toaster />
+      {/* <Toaster /> Removed from here */}
     </main>
   );
 }
