@@ -240,7 +240,7 @@ export default function ActiveEncounter({
         <h1 className="text-4xl font-headline font-bold">
           {encounterName} {isReviewMode && "(Finished)"}
         </h1>
-        <p className="text-muted-foreground">Campaign: {campaign.name} &bull; D&amp;D Initiative and Combat Tracker</p>
+        <p className="text-muted-foreground">Campaign: {campaign.name}</p>
       </header>
 
       {!isReviewMode && (stage === 'PLAYER_SETUP' || rosterEditMode) && (
