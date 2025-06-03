@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare } from 'lucide-react';
+import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare, FileSignature } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -162,17 +162,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     }
   }, [lastEditedPlayerId]);
 
-  // Disable roster edit mode if combat starts
-  useEffect(() => {
-    if (stage === 'COMBAT_ACTIVE' && rosterEditMode) {
-      setRosterEditMode(false);
-      toast({ title: "Edit Mode Off", description: "Roster editing disabled during active combat." });
-    }
-  }, [stage, rosterEditMode]);
-
-
-  const canEditRoster = stage !== 'COMBAT_ACTIVE'; 
-  const showDeleteButtonOnRow = rosterEditMode && stage !== 'COMBAT_ACTIVE';
+  const showDeleteButtonOnRow = rosterEditMode;
 
 
   return (
@@ -263,7 +253,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
               onInitiativeChange={handleInitiativeChange} 
               onDamageApply={handleDamageApply}
               onHealApply={handleHealApply}
-              showDeleteButton={showDeleteButtonOnRow && p.currentHp > 0} // Only allow deleting non-downed players in this mode if in pre-combat
+              showDeleteButton={showDeleteButtonOnRow && p.currentHp > 0} 
               onInitiateDelete={handleInitiateDeletePlayer}
             />
           ))}
@@ -287,12 +277,10 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
           <Button onClick={onExitEncounter} variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Encounters List
           </Button>
-          {canEditRoster && (
-            <Button onClick={handleToggleRosterEditMode} variant="outline">
-              {rosterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
-              {rosterEditMode ? 'Done Editing' : 'Edit'}
-            </Button>
-          )}
+          <Button onClick={handleToggleRosterEditMode} variant="outline">
+            {rosterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
+            {rosterEditMode ? 'Done Editing' : 'Edit'}
+          </Button>
       </div>
 
       {players.length === 0 && stage !== 'PLAYER_SETUP' && (
