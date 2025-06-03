@@ -29,12 +29,16 @@ export function PlayerRow({
   showDeleteButton = false,
   onInitiateDelete,
 }: PlayerRowProps) {
-  const [initiativeInput, setInitiativeInput] = useState(player.initiative?.toString() || '');
+  const [initiativeInput, setInitiativeInput] = useState(
+    player.initiative === 0 ? '' : (player.initiative?.toString() || '')
+  );
   const [damageInput, setDamageInput] = useState('');
   const [healInput, setHealInput] = useState('');
 
   useEffect(() => {
-    setInitiativeInput(player.initiative?.toString() || '');
+    setInitiativeInput(
+      player.initiative === 0 ? '' : (player.initiative?.toString() || '')
+    );
   }, [player.initiative]);
 
   const handleInitiativeBlur = () => {
@@ -161,4 +165,3 @@ export function PlayerRow({
     </Card>
   );
 }
-
