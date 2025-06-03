@@ -122,11 +122,8 @@ export default function EncounterManager({
                     onClick={() => {
                       if (window.confirm(`Are you sure you want to delete "${encounter.name}"? This cannot be undone.`)) {
                         onDeleteEncounter(encounter.id);
-                        try {
-                          toast({ title: "Encounter Deleted", description: `"${encounter.name}" has been removed.` });
-                        } catch (e) {
-                          console.error("Error displaying delete toast:", e);
-                        }
+                        // Toast call removed to simplify and isolate delete logic.
+                        // If deletion works, consider moving toast to page.tsx's handleDeleteEncounter.
                       }
                     }}
                     variant="destructive"
@@ -156,3 +153,4 @@ export default function EncounterManager({
     </div>
   );
 }
+
