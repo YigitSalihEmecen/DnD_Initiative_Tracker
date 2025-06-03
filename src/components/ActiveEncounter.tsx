@@ -261,6 +261,7 @@ export default function ActiveEncounter({
               onHealApply={handleHealApply}
               showDeleteButton={showDeleteButtonOnRow}
               onInitiateDelete={handleInitiateDeletePlayer}
+              disableCombatActions={rosterEditMode} 
             />
           ))}
         </div>

@@ -15,8 +15,9 @@ interface PlayerRowProps {
   onInitiativeChange: (playerId: string, initiative: number) => void;
   onDamageApply: (playerId: string, damage: number) => void;
   onHealApply: (playerId: string, heal: number) => void;
-  showDeleteButton?: boolean; // Optional: controls visibility of delete button
-  onInitiateDelete?: (player: Player) => void; // Optional: callback to initiate deletion
+  showDeleteButton?: boolean; 
+  onInitiateDelete?: (player: Player) => void; 
+  disableCombatActions?: boolean; // New prop
 }
 
 export function PlayerRow({
@@ -28,6 +29,7 @@ export function PlayerRow({
   onHealApply,
   showDeleteButton = false,
   onInitiateDelete,
+  disableCombatActions = false, // Default to false
 }: PlayerRowProps) {
   const [initiativeInput, setInitiativeInput] = useState(
     player.initiative === 0 ? '' : (player.initiative?.toString() || '')
@@ -141,10 +143,16 @@ export function PlayerRow({
                 className="w-full sm:w-24 h-9 text-sm"
                 aria-label={`Damage for ${player.name}`}
                 min="1"
-                disabled={player.currentHp <= 0}
+                disabled={player.currentHp <= 0 || disableCombatActions}
               />
               {damageInput && player.currentHp > 0 && (
-                <Button type="submit" size="icon" className="rounded-full h-9 w-9 animate-fade-in" aria-label="Apply Damage">
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  className="rounded-full h-9 w-9 animate-fade-in" 
+                  aria-label="Apply Damage"
+                  disabled={disableCombatActions}
+                >
                   <MinusCircle size={20} />
                 </Button>
               )}
@@ -158,9 +166,17 @@ export function PlayerRow({
                 className="w-full sm:w-24 h-9 text-sm"
                 aria-label={`Heal for ${player.name}`}
                 min="1"
+                disabled={disableCombatActions}
               />
               {healInput && (
-                <Button type="submit" size="icon" variant="outline" className="rounded-full h-9 w-9 animate-fade-in border-primary text-primary hover:bg-primary/10" aria-label="Apply Heal">
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  variant="outline" 
+                  className="rounded-full h-9 w-9 animate-fade-in border-primary text-primary hover:bg-primary/10" 
+                  aria-label="Apply Heal"
+                  disabled={disableCombatActions}
+                >
                   <CheckCircle size={20} />
                 </Button>
               )}
