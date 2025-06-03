@@ -6,7 +6,7 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil } from 'lucide-react';
+import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil, XSquare } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -43,6 +43,7 @@ export default function CampaignManagerComponent({
   
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
   const [dialogCampaignNameForEdit, setDialogCampaignNameForEdit] = useState('');
+  const [isCampaignEditMode, setIsCampaignEditMode] = useState(false);
 
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -71,6 +72,7 @@ export default function CampaignManagerComponent({
       description: `"${newCampaignName}" is ready. Select it to add encounters.`,
     });
     setIsCreateDialogOpen(false);
+    onSelectCampaign(newId); // Navigate to the new campaign
   };
 
   const handleOpenEditDialog = (campaign: Campaign) => {
@@ -102,6 +104,10 @@ export default function CampaignManagerComponent({
     }
     setEditingCampaignId(null);
     setDialogCampaignNameForEdit('');
+  };
+
+  const handleToggleCampaignEditMode = () => {
+    setIsCampaignEditMode(prev => !prev);
   };
 
   if (!isClient) {
@@ -153,7 +159,7 @@ export default function CampaignManagerComponent({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCreateCampaign}>Create Campaign</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmCreateCampaign}>Create & Open Campaign</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -198,9 +204,11 @@ export default function CampaignManagerComponent({
                 <div className="flex-grow">
                   <div className="flex items-center gap-2">
                     <h3 className="text-xl font-semibold text-primary">{campaign.name}</h3>
-                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(campaign)} className="h-7 w-7 text-muted-foreground hover:text-primary">
-                      <Pencil size={16} />
-                    </Button>
+                    {isCampaignEditMode && (
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(campaign)} className="h-7 w-7 text-muted-foreground hover:text-primary">
+                        <Pencil size={16} />
+                      </Button>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {campaign.encounters.length} encounter{campaign.encounters.length === 1 ? '' : 's'}
@@ -213,29 +221,31 @@ export default function CampaignManagerComponent({
                   <Button onClick={() => onSelectCampaign(campaign.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
                     <PlayCircle className="mr-2" /> Manage Encounters
                   </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        aria-label={`Delete ${campaign.name}`}
-                      >
-                        <Trash2 className="mr-1.5" /> Delete
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure you want to delete this campaign?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action cannot be undone. This will permanently delete the "{campaign.name}" campaign and all its encounters.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => onDeleteCampaign(campaign.id)}>Delete Campaign</AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  {isCampaignEditMode && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          aria-label={`Delete ${campaign.name}`}
+                        >
+                          <Trash2 className="mr-1.5" /> Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure you want to delete this campaign?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the "{campaign.name}" campaign and all its encounters.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => onDeleteCampaign(campaign.id)}>Delete Campaign</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
                 </div>
               </Card>
             ))
@@ -243,7 +253,7 @@ export default function CampaignManagerComponent({
              <p className="text-muted-foreground text-center py-4 text-lg">Start by creating a campaign!</p>
           )}
         </CardContent>
-        {campaigns.length > 0 && (
+        {campaigns.length > 0 && isCampaignEditMode && (
           <CardFooter className="p-4 border-t border-border">
              <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -271,8 +281,23 @@ export default function CampaignManagerComponent({
           </CardFooter>
         )}
       </Card>
+       {campaigns.length === 0 && (
+         <Card className="shadow-lg text-center mt-4">
+            <CardHeader>
+                <CardTitle className="text-2xl font-headline">No Campaigns Yet</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground text-lg">The chronicles are empty.</p>
+                <p className="text-muted-foreground mt-1">Create your first campaign to begin your adventures!</p>
+            </CardContent>
+        </Card>
+       )}
+      <div className="mt-12 text-center flex flex-col sm:flex-row justify-center items-center gap-4">
+        <Button onClick={handleToggleCampaignEditMode} variant="outline">
+          {isCampaignEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
+          {isCampaignEditMode ? 'Done Editing' : 'Edit Campaigns'}
+        </Button>
+      </div>
     </div>
   );
 }
-
-    
