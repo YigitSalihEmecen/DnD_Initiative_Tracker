@@ -1,3 +1,9 @@
+import EncounterTrackerPage from '@/components/EncounterTrackerPage';
+
 export default function Home() {
-  return <></>;
+  return (
+    <main className="flex-grow">
+      <EncounterTrackerPage />
+    </main>
+  );
 }
