@@ -5,7 +5,7 @@ import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { Encounter, Player, AppStage } from '@/types';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
-import { useToast } from "@/hooks/use-toast"; // Added useToast
+import { useToast } from "@/hooks/use-toast"; 
 
 const LOCAL_STORAGE_KEY = 'encounterFlowApp_encounters_v1';
 
@@ -13,7 +13,7 @@ export default function Home() {
   const [encounters, setEncounters] = useState<Encounter[]>([]);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const { toast } = useToast(); // Initialize toast
+  const { toast } = useToast(); 
 
   useEffect(() => {
     setIsClient(true);
@@ -29,12 +29,17 @@ export default function Home() {
             setEncounters(parsedEncounters.sort((a,b) => b.lastModified - a.lastModified));
           } else {
             console.warn("Stored encounters data is malformed. Resetting.");
-            localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear malformed data
+            localStorage.removeItem(LOCAL_STORAGE_KEY); 
             setEncounters([]);
+            toast({ // Toasting here is okay as it's a one-time load issue.
+              title: "Data Issue",
+              description: "Saved encounters were malformed and have been reset.",
+              variant: "destructive",
+            });
           }
         } catch (error) {
           console.error("Failed to parse encounters from localStorage", error);
-          localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear malformed data on error
+          localStorage.removeItem(LOCAL_STORAGE_KEY); 
           setEncounters([]);
           toast({
             title: "Error Loading Data",
@@ -44,7 +49,7 @@ export default function Home() {
         }
       }
     }
-  }, [isClient, toast]); // Added toast to dependency array if used within this effect for error reporting
+  }, [isClient]); // Removed `toast` from dependency array
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
@@ -52,14 +57,11 @@ export default function Home() {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(encounters));
       } catch (error) {
         console.error("Failed to save encounters to localStorage", error);
-        toast({
-          title: "Error Saving Data",
-          description: "Could not save encounter changes automatically.",
-          variant: "destructive",
-        });
+        // Avoid toast here as it can spam if saving frequently fails or if component re-renders often
+        // Consider a more robust error reporting mechanism if this becomes frequent
       }
     }
-  }, [encounters, isClient, toast]); // Added toast to dependency array
+  }, [encounters, isClient]); // Removed `toast` from dependency array
 
   const handleCreateEncounter = (name: string): string => {
     const newEncounter: Encounter = {
@@ -70,7 +72,6 @@ export default function Home() {
       lastModified: Date.now(),
     };
     setEncounters(prev => [newEncounter, ...prev].sort((a,b) => b.lastModified - a.lastModified));
-    // Toast for creation is handled in EncounterManager and then onSelectEncounter
     return newEncounter.id;
   };
 
@@ -149,7 +150,7 @@ export default function Home() {
         />
       ) : (
         <ActiveEncounter
-          key={activeEncounter.id} // Key is important here for re-mounts when activeEncounter changes
+          key={activeEncounter.id} 
           encounter={activeEncounter}
           onEncounterUpdate={handleUpdateEncounter}
           onExitEncounter={handleExitEncounter}
