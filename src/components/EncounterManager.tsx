@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { Encounter, EncounterType, Campaign } from '@/types';
+import type { Encounter, Campaign } from '@/types';
 import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,8 +20,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
 interface EncounterManagerProps {
@@ -39,12 +37,10 @@ export default function EncounterManager({
 }: EncounterManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newEncounterName, setNewEncounterName] = useState('');
-  const [newEncounterType, setNewEncounterType] = useState<EncounterType>('local');
   
   const [editingEncounterId, setEditingEncounterId] = useState<string | null>(null);
   const [dialogEncounterNameForEdit, setDialogEncounterNameForEdit] = useState('');
 
-  const [activeTab, setActiveTab] = useState<EncounterType>('local');
   const [isEncounterEditMode, setIsEncounterEditMode] = useState(false);
   
   const { toast } = useToast();
@@ -56,7 +52,6 @@ export default function EncounterManager({
 
   const handleOpenCreateDialog = () => {
     setNewEncounterName('');
-    setNewEncounterType('local');
     setIsCreateDialogOpen(true);
   };
 
@@ -76,7 +71,6 @@ export default function EncounterManager({
       stage: 'PLAYER_SETUP',
       createdDate: Date.now(),
       lastModified: Date.now(),
-      type: newEncounterType,
     };
     const updatedEncounters = [newEncounter, ...campaign.encounters].sort((a,b) => b.lastModified - a.lastModified);
     onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
@@ -84,7 +78,7 @@ export default function EncounterManager({
     onSelectEncounter(newEncounter.id); 
     toast({
       title: "Encounter Created",
-      description: `"${newEncounterName}" (${newEncounterType}) in campaign "${campaign.name}" is ready. Continuing...`,
+      description: `"${newEncounterName}" in campaign "${campaign.name}" is ready. Continuing...`,
     });
     setIsCreateDialogOpen(false);
   };
@@ -109,10 +103,6 @@ export default function EncounterManager({
     if (!stage) return 'Unknown Stage';
     return stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
-
-  const filteredEncounters = campaign.encounters.filter(
-    (enc) => (enc.type || 'local') === activeTab
-  );
 
   const handleOpenEditEncounterDialog = (encounter: Encounter) => {
     setEditingEncounterId(encounter.id);
@@ -164,8 +154,8 @@ export default function EncounterManager({
 
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-8 animate-fade-in font-code">
-      <header className="mb-10 text-center">
-        <h1 className="text-4xl font-headline font-bold tracking-tight pt-8 md:pt-0">Campaign: {campaign.name}</h1>
+      <header className="mb-10 text-center pt-8 md:pt-0">
+        <h1 className="text-4xl font-headline font-bold tracking-tight">Campaign: {campaign.name}</h1>
         <p className="text-xl text-muted-foreground mt-2">Manage Encounters for this Campaign</p>
       </header>
       
@@ -189,7 +179,7 @@ export default function EncounterManager({
           <AlertDialogHeader>
             <AlertDialogTitle>New Encounter Details for "{campaign.name}"</AlertDialogTitle>
             <AlertDialogDescription>
-              Provide a name and select the type for your new encounter.
+              Provide a name for your new encounter.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-4">
@@ -200,17 +190,6 @@ export default function EncounterManager({
               aria-label="New Encounter Name"
               className="text-base p-3 h-12"
             />
-            <RadioGroup value={newEncounterType} onValueChange={(value: string) => setNewEncounterType(value as EncounterType)}>
-              <Label className="mb-2 block">Encounter Type:</Label>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="local" id="type-local" />
-                <Label htmlFor="type-local">Local</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="online" id="type-online" />
-                <Label htmlFor="type-online">Online (Future Feature)</Label>
-              </div>
-            </RadioGroup>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -252,138 +231,67 @@ export default function EncounterManager({
           <CardDescription className="text-base">Jump back into the action or manage your saved scenarios for this campaign.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as EncounterType)} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="local">Local Encounters</TabsTrigger>
-              <TabsTrigger value="online">Online Encounters</TabsTrigger>
-            </TabsList>
-            <TabsContent value="local">
-              {filteredEncounters.length > 0 ? (
-                filteredEncounters.map((encounter) => (
-                  <Card key={encounter.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-3 hover:shadow-md transition-shadow duration-200 mb-3">
-                    <div className="flex-grow">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
-                        {isEncounterEditMode && (
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
-                            <Pencil size={16} />
-                          </Button>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
-                      </p>
-                       {encounter.createdDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Created: {new Date(encounter.createdDate).toLocaleString()}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Last updated: {encounter.lastModified ? formatDistanceToNow(new Date(encounter.lastModified), { addSuffix: true }) : 'N/A'}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
-                      {!isEncounterEditMode && (
-                        <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                          <PlayCircle className="mr-2" /> Continue
+          {campaign.encounters.length > 0 ? (
+            campaign.encounters.map((encounter) => (
+              <Card key={encounter.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-3 hover:shadow-md transition-shadow duration-200 mb-3">
+                <div className="flex-grow">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
+                    {isEncounterEditMode && (
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
+                        <Pencil size={16} />
+                      </Button>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
+                  </p>
+                   {encounter.createdDate && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Created: {new Date(encounter.createdDate).toLocaleString()}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Last updated: {encounter.lastModified ? formatDistanceToNow(new Date(encounter.lastModified), { addSuffix: true }) : 'N/A'}
+                  </p>
+                </div>
+                <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
+                  {!isEncounterEditMode && (
+                    <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
+                      <PlayCircle className="mr-2" /> Continue
+                    </Button>
+                  )}
+                  {isEncounterEditMode && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          aria-label={`Delete ${encounter.name}`}
+                        >
+                          <Trash2 className="mr-1.5" /> Delete
                         </Button>
-                      )}
-                      {isEncounterEditMode && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              aria-label={`Delete ${encounter.name}`}
-                            >
-                              <Trash2 className="mr-1.5" /> Delete
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </Card>
-                ))
-              ) : (
-                 <p className="text-muted-foreground text-center py-4">No {activeTab} encounters yet in "{campaign.name}". Create one to get started!</p>
-              )}
-            </TabsContent>
-            <TabsContent value="online">
-               {filteredEncounters.length > 0 ? (
-                filteredEncounters.map((encounter) => (
-                   <Card key={encounter.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-3 hover:shadow-md transition-shadow duration-200 mb-3">
-                    <div className="flex-grow">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
-                        {isEncounterEditMode && (
-                          <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
-                            <Pencil size={16} />
-                          </Button>
-                        )}
-                      </div>
-                      <p className="text-sm text-muted-foreground">
-                        {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
-                      </p>
-                      {encounter.createdDate && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Created: {new Date(encounter.createdDate).toLocaleString()}
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Last updated: {encounter.lastModified ? formatDistanceToNow(new Date(encounter.lastModified), { addSuffix: true }) : 'N/A'}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
-                      {!isEncounterEditMode && (
-                        <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                          <PlayCircle className="mr-2" /> Continue
-                        </Button>
-                      )}
-                      {isEncounterEditMode && (
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              aria-label={`Delete ${encounter.name}`}
-                            >
-                              <Trash2 className="mr-1.5" /> Delete
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                               This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      )}
-                    </div>
-                  </Card>
-                ))
-              ) : (
-                 <p className="text-muted-foreground text-center py-4">No {activeTab} encounters yet in "{campaign.name}". Create one to get started!</p>
-              )}
-            </TabsContent>
-          </Tabs>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              </Card>
+            ))
+          ) : (
+             <p className="text-muted-foreground text-center py-4">No encounters yet in "{campaign.name}". Create one to get started!</p>
+          )}
         </CardContent>
         {campaign.encounters.length > 0 && isEncounterEditMode && (
           <CardFooter className="p-4 border-t border-border">
@@ -413,7 +321,7 @@ export default function EncounterManager({
           </CardFooter>
         )}
       </Card>
-       {campaign.encounters.length === 0 && (
+       {campaign.encounters.length === 0 && !isEncounterEditMode && (
         <Card className="shadow-lg text-center mt-4">
             <CardHeader>
                 <CardTitle className="text-2xl font-headline">No Encounters Yet in "{campaign.name}"</CardTitle>

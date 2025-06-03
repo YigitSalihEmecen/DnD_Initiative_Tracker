@@ -14,8 +14,6 @@ export type AppStage =
   | 'PRE_COMBAT'
   | 'COMBAT_ACTIVE';
 
-export type EncounterType = 'local' | 'online';
-
 export interface Encounter {
   id: string;
   name: string;
@@ -23,7 +21,6 @@ export interface Encounter {
   stage: AppStage;
   lastModified: number;
   createdDate: number; // Added this field
-  type: EncounterType;
 }
 
 export interface Campaign {

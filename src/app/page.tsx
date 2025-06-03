@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Campaign, Encounter, Player, AppStage, EncounterType } from '@/types';
+import type { Campaign, Encounter, Player, AppStage } from '@/types';
 import CampaignManagerComponent from '@/components/CampaignManager';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
@@ -31,9 +31,8 @@ export default function Home() {
             lastModified: camp.lastModified || Date.now(),
             encounters: (camp.encounters || []).map((enc: any) => ({
               ...enc,
-              type: enc.type || 'local',
               lastModified: enc.lastModified || Date.now(),
-              createdDate: enc.createdDate || enc.lastModified || Date.now(), // Ensure createdDate exists
+              createdDate: enc.createdDate || enc.lastModified || Date.now(),
             })).sort((a: Encounter, b: Encounter) => b.lastModified - a.lastModified)
           }));
 
@@ -147,7 +146,9 @@ export default function Home() {
       setCampaigns(prevCampaigns => 
         prevCampaigns.map(camp => {
           if (camp.id === activeCampaignId) {
-            const updatedEncounters = [...camp.encounters].sort((a, b) => b.lastModified - a.lastModified);
+            // Ensure we're working with the most up-to-date encounters list for this campaign
+            const currentCampaignData = prevCampaigns.find(c => c.id === activeCampaignId);
+            const updatedEncounters = [...(currentCampaignData?.encounters || [])].sort((a, b) => b.lastModified - a.lastModified);
             return { ...camp, encounters: updatedEncounters, lastModified: Date.now() };
           }
           return camp;
