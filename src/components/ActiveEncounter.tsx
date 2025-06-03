@@ -22,8 +22,8 @@ import {
 
 interface ActiveEncounterProps {
   encounter: Encounter;
-  campaign: Campaign; // The parent campaign
-  onCampaignUpdate: (updatedCampaign: Campaign) => void; // To update the entire campaign
+  campaign: Campaign; 
+  onCampaignUpdate: (updatedCampaign: Campaign) => void; 
   onExitEncounter: () => void;
 }
 
@@ -37,7 +37,7 @@ export default function ActiveEncounter({
   const [playerName, setPlayerName] = useState('');
   const [playerAC, setPlayerAC] = useState('');
   const [playerHP, setPlayerHP] = useState('');
-  const [playerInitiative, setPlayerInitiative] = useState(''); // For adding new player in edit mode during combat
+  const [playerInitiative, setPlayerInitiative] = useState(''); 
   const { toast } = useToast();
 
   const [rosterEditMode, setRosterEditMode] = useState(false);
@@ -57,13 +57,12 @@ export default function ActiveEncounter({
     onCampaignUpdate({ ...campaign, encounters: updatedEncountersInCampaign, lastModified: Date.now() });
   };
 
-  // Determine if initiative input is needed in add form based on current mode and stage (but not in review mode)
   const showInitiativeInputFieldInAddForm = !isReviewMode && rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP');
 
 
   const handleAddPlayer = (e: FormEvent) => {
     e.preventDefault();
-    if (isReviewMode) return; // No adding players in review mode
+    if (isReviewMode) return; 
 
     const ac = parseInt(playerAC, 10);
     const hp = parseInt(playerHP, 10);
@@ -210,6 +209,48 @@ export default function ActiveEncounter({
     });
   };
 
+  const handlePlayerAcChange = (playerId: string, newAc: number) => {
+    if (isReviewMode) return;
+    const updatedPlayers = players.map((p) =>
+      p.id === playerId ? { ...p, ac: newAc } : p
+    );
+    updateEncounterInCampaign({ players: updatedPlayers });
+    setLastEditedPlayerId(playerId);
+    toast({
+      title: "AC Updated",
+      description: `${players.find(p=>p.id===playerId)?.name}'s AC changed to ${newAc}.`,
+    });
+  };
+
+  const handlePlayerMaxHpChange = (playerId: string, newMaxHp: number) => {
+    if (isReviewMode) return;
+    const updatedPlayers = players.map((p) =>
+      p.id === playerId ? { ...p, hp: newMaxHp, currentHp: Math.min(p.currentHp, newMaxHp) } : p
+    );
+    updateEncounterInCampaign({ players: updatedPlayers });
+    setLastEditedPlayerId(playerId);
+    toast({
+      title: "Max HP Updated",
+      description: `${players.find(p=>p.id===playerId)?.name}'s Max HP changed to ${newMaxHp}.`,
+    });
+  };
+
+  const handlePlayerCurrentHpChange = (playerId: string, newCurrentHp: number) => {
+    if (isReviewMode) return;
+    const playerToUpdate = players.find(p => p.id === playerId);
+    if (!playerToUpdate) return;
+
+    const updatedPlayers = players.map((p) =>
+      p.id === playerId ? { ...p, currentHp: Math.max(0, Math.min(newCurrentHp, p.hp)) } : p
+    );
+    updateEncounterInCampaign({ players: updatedPlayers });
+    setLastEditedPlayerId(playerId);
+    toast({
+      title: "Current HP Updated",
+      description: `${playerToUpdate.name}'s Current HP changed to ${Math.max(0, Math.min(newCurrentHp, playerToUpdate.hp))}.`,
+    });
+  };
+
   const handleConfirmFinishEncounter = () => {
     if (isReviewMode) return;
     updateEncounterInCampaign({ isFinished: true });
@@ -302,6 +343,9 @@ export default function ActiveEncounter({
               disableCombatActions={rosterEditMode || isReviewMode} 
               isRosterEditing={!isReviewMode && rosterEditMode}
               onNameChange={handlePlayerNameChange}
+              onAcChange={handlePlayerAcChange}
+              onMaxHpChange={handlePlayerMaxHpChange}
+              onCurrentHpChange={handlePlayerCurrentHpChange}
               isReviewMode={isReviewMode}
             />
           ))}

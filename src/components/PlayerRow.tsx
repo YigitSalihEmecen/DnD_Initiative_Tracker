@@ -21,6 +21,9 @@ interface PlayerRowProps {
   disableCombatActions?: boolean;
   isRosterEditing?: boolean;
   onNameChange?: (playerId: string, newName: string) => void;
+  onAcChange?: (playerId: string, newAc: number) => void;
+  onMaxHpChange?: (playerId: string, newMaxHp: number) => void;
+  onCurrentHpChange?: (playerId: string, newCurrentHp: number) => void;
   isReviewMode?: boolean;
 }
 
@@ -36,6 +39,9 @@ export function PlayerRow({
   disableCombatActions = false,
   isRosterEditing = false,
   onNameChange,
+  onAcChange,
+  onMaxHpChange,
+  onCurrentHpChange,
   isReviewMode = false,
 }: PlayerRowProps) {
   const [initiativeInput, setInitiativeInput] = useState(
@@ -44,6 +50,10 @@ export function PlayerRow({
   const [damageInput, setDamageInput] = useState('');
   const [healInput, setHealInput] = useState('');
   const [nameInput, setNameInput] = useState(player.name);
+  const [acInput, setAcInput] = useState(player.ac.toString());
+  const [maxHpInput, setMaxHpInput] = useState(player.hp.toString());
+  const [currentHpInput, setCurrentHpInput] = useState(player.currentHp.toString());
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -55,6 +65,19 @@ export function PlayerRow({
   useEffect(() => {
     setNameInput(player.name);
   }, [player.name]);
+
+  useEffect(() => {
+    setAcInput(player.ac.toString());
+  }, [player.ac]);
+
+  useEffect(() => {
+    setMaxHpInput(player.hp.toString());
+  }, [player.hp]);
+
+  useEffect(() => {
+    setCurrentHpInput(player.currentHp.toString());
+  }, [player.currentHp]);
+
 
   const handleInitiativeBlur = () => {
     if (isReviewMode) return;
@@ -99,10 +122,61 @@ export function PlayerRow({
   const handleNameInputBlur = () => {
     if (isReviewMode) return;
     if (nameInput.trim() === '') {
-      setNameInput(player.name); // Revert if empty
+      setNameInput(player.name); 
       toast({ title: "Name Cannot Be Empty", description: "Reverted to the original name.", variant: "destructive" });
     } else if (onNameChange && nameInput.trim() !== player.name) {
       onNameChange(player.id, nameInput.trim());
+    }
+  };
+
+  const handleAcInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (isReviewMode) return;
+    setAcInput(e.target.value);
+  };
+
+  const handleAcInputBlur = () => {
+    if (isReviewMode || !onAcChange) return;
+    const newAc = parseInt(acInput, 10);
+    if (isNaN(newAc) || newAc < 0) {
+      setAcInput(player.ac.toString());
+      toast({ title: "Invalid AC", description: "AC must be a non-negative number. Reverted.", variant: "destructive" });
+    } else if (newAc !== player.ac) {
+      onAcChange(player.id, newAc);
+    }
+  };
+
+  const handleMaxHpInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (isReviewMode) return;
+    setMaxHpInput(e.target.value);
+  };
+
+  const handleMaxHpInputBlur = () => {
+    if (isReviewMode || !onMaxHpChange) return;
+    const newMaxHp = parseInt(maxHpInput, 10);
+    if (isNaN(newMaxHp) || newMaxHp <= 0) {
+      setMaxHpInput(player.hp.toString());
+      toast({ title: "Invalid Max HP", description: "Max HP must be a positive number. Reverted.", variant: "destructive" });
+    } else if (newMaxHp !== player.hp) {
+      onMaxHpChange(player.id, newMaxHp);
+    }
+  };
+
+  const handleCurrentHpInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (isReviewMode) return;
+    setCurrentHpInput(e.target.value);
+  };
+
+  const handleCurrentHpInputBlur = () => {
+    if (isReviewMode || !onCurrentHpChange) return;
+    const newCurrentHp = parseInt(currentHpInput, 10);
+    if (isNaN(newCurrentHp) || newCurrentHp < 0) {
+      setCurrentHpInput(player.currentHp.toString());
+      toast({ title: "Invalid Current HP", description: "Current HP must be a non-negative number. Reverted.", variant: "destructive" });
+    } else if (newCurrentHp > player.hp) {
+      setCurrentHpInput(player.hp.toString()); // Cap at Max HP
+      toast({ title: "Invalid Current HP", description: `Current HP cannot exceed Max HP (${player.hp}). Reverted.`, variant: "destructive" });
+    } else if (newCurrentHp !== player.currentHp) {
+      onCurrentHpChange(player.id, newCurrentHp);
     }
   };
 
@@ -147,21 +221,72 @@ export function PlayerRow({
         </div>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 items-center pb-4">
-        <div className="text-sm">
-          <p>AC: <span className="font-medium">{player.ac}</span></p>
-          <p>Max HP: <span className="font-medium">{player.hp}</span></p>
-          { (stage === 'COMBAT_ACTIVE' || isReviewMode) && ( // Show current HP in review mode too
-            <p>Current HP: <span className={`font-medium ${player.currentHp <= 0 ? 'text-destructive' : ''}`}>{player.currentHp}</span></p>
+        <div className="text-sm space-y-1">
+          {!isReviewMode && isRosterEditing && onAcChange ? (
+            <div className="flex items-center gap-2">
+              <label htmlFor={`ac-${player.id}`} className="font-medium whitespace-nowrap">AC:</label>
+              <Input 
+                id={`ac-${player.id}`}
+                type="number" 
+                value={acInput} 
+                onChange={handleAcInputChange} 
+                onBlur={handleAcInputBlur} 
+                className="w-16 h-8 text-sm p-1"
+                aria-label={`Edit AC for ${player.name}`}
+                min="0"
+              />
+            </div>
+          ) : (
+            <p>AC: <span className="font-medium">{player.ac}</span></p>
           )}
-          {(stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || (isReviewMode && player.initiative !== undefined) ) && ( // Show initiative in review if set
+
+          {!isReviewMode && isRosterEditing && onMaxHpChange ? (
+            <div className="flex items-center gap-2">
+              <label htmlFor={`max-hp-${player.id}`} className="font-medium whitespace-nowrap">Max HP:</label>
+              <Input 
+                id={`max-hp-${player.id}`}
+                type="number" 
+                value={maxHpInput} 
+                onChange={handleMaxHpInputChange} 
+                onBlur={handleMaxHpInputBlur} 
+                className="w-20 h-8 text-sm p-1"
+                aria-label={`Edit Max HP for ${player.name}`}
+                min="1"
+              />
+            </div>
+          ) : (
+            <p>Max HP: <span className="font-medium">{player.hp}</span></p>
+          )}
+          
+          {(stage === 'COMBAT_ACTIVE' || isReviewMode || (isRosterEditing && !isReviewMode)) && (
+            !isReviewMode && isRosterEditing && onCurrentHpChange ? (
+              <div className="flex items-center gap-2">
+                <label htmlFor={`current-hp-${player.id}`} className="font-medium whitespace-nowrap">Current HP:</label>
+                <Input 
+                  id={`current-hp-${player.id}`}
+                  type="number" 
+                  value={currentHpInput} 
+                  onChange={handleCurrentHpInputChange} 
+                  onBlur={handleCurrentHpInputBlur} 
+                  className={`w-20 h-8 text-sm p-1 ${parseInt(currentHpInput, 10) <= 0 ? 'text-destructive' : ''}`}
+                  aria-label={`Edit Current HP for ${player.name}`}
+                  min="0"
+                />
+              </div>
+            ) : (
+              <p>Current HP: <span className={`font-medium ${player.currentHp <= 0 ? 'text-destructive' : ''}`}>{player.currentHp}</span></p>
+            )
+          )}
+
+          {(stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || (isReviewMode && player.initiative !== undefined) ) && (
              <p>Initiative: <span className="font-medium">{player.initiative}</span></p>
           )}
-           {(stage === 'PLAYER_SETUP' && !isReviewMode) && ( // Don't show this specific HP if in review mode and combat active
+           {(stage === 'PLAYER_SETUP' && !isReviewMode && !isRosterEditing) && ( 
              <p>HP: <span className="font-medium">{player.hp}</span></p>
           )}
         </div>
 
-        {!isReviewMode && stage === 'INITIATIVE_SETUP' && (
+        {!isReviewMode && stage === 'INITIATIVE_SETUP' && !isRosterEditing && (
           <div className="md:col-span-2 flex items-center gap-2">
             <label htmlFor={`initiative-${player.id}`} className="text-sm whitespace-nowrap">Initiative:</label>
             <Input
@@ -177,7 +302,7 @@ export function PlayerRow({
           </div>
         )}
 
-        {!isReviewMode && stage === 'COMBAT_ACTIVE' && (
+        {!isReviewMode && stage === 'COMBAT_ACTIVE' && !isRosterEditing && (
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
             <form onSubmit={handleDamageSubmit} className="flex items-center gap-2">
               <Input
