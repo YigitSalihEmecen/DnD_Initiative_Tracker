@@ -74,6 +74,7 @@ export default function EncounterManager({
       name: newEncounterName.trim() || `Encounter ${campaign.encounters.length + 1}`,
       players: [],
       stage: 'PLAYER_SETUP',
+      createdDate: Date.now(),
       lastModified: Date.now(),
       type: newEncounterType,
     };
@@ -272,6 +273,11 @@ export default function EncounterManager({
                       <p className="text-sm text-muted-foreground">
                         {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
                       </p>
+                       {encounter.createdDate && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Created: {new Date(encounter.createdDate).toLocaleString()}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         Last updated: {encounter.lastModified ? formatDistanceToNow(new Date(encounter.lastModified), { addSuffix: true }) : 'N/A'}
                       </p>
@@ -328,6 +334,11 @@ export default function EncounterManager({
                       <p className="text-sm text-muted-foreground">
                         {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
                       </p>
+                      {encounter.createdDate && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Created: {new Date(encounter.createdDate).toLocaleString()}
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground mt-1">
                         Last updated: {encounter.lastModified ? formatDistanceToNow(new Date(encounter.lastModified), { addSuffix: true }) : 'N/A'}
                       </p>
@@ -421,4 +432,3 @@ export default function EncounterManager({
     </div>
   );
 }
-

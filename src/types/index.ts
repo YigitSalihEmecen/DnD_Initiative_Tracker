@@ -22,6 +22,7 @@ export interface Encounter {
   players: Player[];
   stage: AppStage;
   lastModified: number;
+  createdDate: number; // Added this field
   type: EncounterType;
 }
 

@@ -32,7 +32,8 @@ export default function Home() {
             encounters: (camp.encounters || []).map((enc: any) => ({
               ...enc,
               type: enc.type || 'local',
-              lastModified: enc.lastModified || Date.now()
+              lastModified: enc.lastModified || Date.now(),
+              createdDate: enc.createdDate || enc.lastModified || Date.now(), // Ensure createdDate exists
             })).sort((a: Encounter, b: Encounter) => b.lastModified - a.lastModified)
           }));
 
@@ -40,17 +41,16 @@ export default function Home() {
               typeof camp.id === 'string' &&
               typeof camp.name === 'string' &&
               typeof camp.lastModified === 'number' &&
-              Array.isArray(camp.encounters)
+              Array.isArray(camp.encounters) &&
+              camp.encounters.every((enc: Encounter) => typeof enc.createdDate === 'number')
             )) {
             setCampaigns(parsedCampaigns.sort((a,b) => b.lastModified - a.lastModified));
           } else {
             console.warn("Stored campaigns data is malformed. Resetting.");
             localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
             setCampaigns([]);
-            // No toast here as per user request to remove specific console.error
           }
         } catch (error) {
-          // console.error("Failed to parse campaigns from localStorage", error); // Removed as per user request
           localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
           setCampaigns([]);
           toast({
@@ -61,7 +61,7 @@ export default function Home() {
         }
       }
     }
-  }, [isClient]); // Removed toast from dependencies
+  }, [isClient, toast]);
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
@@ -76,7 +76,7 @@ export default function Home() {
           });
       }
     }
-  }, [campaigns, isClient]); // Removed toast from dependencies
+  }, [campaigns, isClient, toast]);
 
   const handleCreateCampaign = (name: string): string => {
     const newCampaign: Campaign = {
@@ -102,8 +102,6 @@ export default function Home() {
         camp.id === campaignWithSortedEncounters.id ? campaignWithSortedEncounters : camp
       ).sort((a, b) => b.lastModified - a.lastModified)
     );
-    // Specific toasts for name changes are handled in child components
-    // A general "Campaign updated" toast could be added here if desired for other updates.
   };
 
   const handleDeleteCampaign = (campaignId: string) => {
@@ -149,7 +147,6 @@ export default function Home() {
       setCampaigns(prevCampaigns => 
         prevCampaigns.map(camp => {
           if (camp.id === activeCampaignId) {
-            // Ensure encounters within the campaign are also sorted when the campaign is "touched"
             const updatedEncounters = [...camp.encounters].sort((a, b) => b.lastModified - a.lastModified);
             return { ...camp, encounters: updatedEncounters, lastModified: Date.now() };
           }
@@ -221,5 +218,3 @@ export default function Home() {
     />
   );
 }
-
-    
