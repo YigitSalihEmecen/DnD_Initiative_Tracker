@@ -12,7 +12,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 interface EncounterManagerProps {
   encounters: Encounter[];
-  onCreateEncounter: (name: string) => string;
+  onCreateEncounter: (name: string) => string; // Returns new encounter ID
   onSelectEncounter: (id: string) => void;
   onDeleteEncounter: (id: string) => void;
 }
@@ -24,7 +24,7 @@ export default function EncounterManager({
   onDeleteEncounter,
 }: EncounterManagerProps) {
   const [newEncounterName, setNewEncounterName] = useState('');
-  const { toast } = useToast();
+  const { toast } = useToast(); // Still used for create encounter feedback
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -42,23 +42,24 @@ export default function EncounterManager({
       });
       return;
     }
-    const newId = onCreateEncounter(newEncounterName);
-    toast({
+    const newId = onCreateEncounter(newEncounterName); // Create first
+    onSelectEncounter(newId); // Then select (which also triggers a toast if needed)
+    toast({ // This toast is for user feedback that creation was successful before navigating
       title: "Encounter Created",
-      description: `"${newEncounterName}" is ready for setup.`,
+      description: `"${newEncounterName}" is ready for setup. Continuing to encounter...`,
     });
-    onSelectEncounter(newId); 
     setNewEncounterName('');
   };
   
-  const getStageDisplay = (stage: string) => {
+  const getStageDisplay = (stage?: string) => { // Made stage optional for safety
+    if (!stage) return 'Unknown Stage';
     return stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
   if (!isClient) {
      return (
       <div className="container mx-auto p-4 md:p-8 font-code flex justify-center items-center min-h-[calc(100vh-10rem)]">
-        {/* Minimal loading state to avoid flash of unstyled content or hydration errors on initial load */}
+        {/* Minimal loading state */}
       </div>
     );
   }
@@ -83,7 +84,7 @@ export default function EncounterManager({
               type="text"
               value={newEncounterName}
               onChange={(e) => setNewEncounterName(e.target.value)}
-              placeholder="e.g., The Dragon's Lair"
+              placeholder="e.g., The Goblin Ambush"
               className="flex-grow text-lg p-3 h-12"
               aria-label="New Encounter Name"
             />
@@ -111,7 +112,7 @@ export default function EncounterManager({
                     {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Last updated: {formatDistanceToNow(new Date(encounter.lastModified), { addSuffix: true })}
+                    Last updated: {encounter.lastModified ? formatDistanceToNow(new Date(encounter.lastModified), { addSuffix: true }) : 'N/A'}
                   </p>
                 </div>
                 <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
@@ -121,9 +122,8 @@ export default function EncounterManager({
                   <Button
                     onClick={() => {
                       if (window.confirm(`Are you sure you want to delete "${encounter.name}"? This cannot be undone.`)) {
-                        onDeleteEncounter(encounter.id);
-                        // Toast call removed to simplify and isolate delete logic.
-                        // If deletion works, consider moving toast to page.tsx's handleDeleteEncounter.
+                        onDeleteEncounter(encounter.id); 
+                        // Toast for delete confirmation is now handled in page.tsx's handleDeleteEncounter
                       }
                     }}
                     variant="destructive"
@@ -153,4 +153,3 @@ export default function EncounterManager({
     </div>
   );
 }
-

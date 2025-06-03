@@ -1,20 +1,22 @@
+
 'use client';
 
 import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { Encounter, Player, AppStage } from '@/types';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
-// Toaster is already in layout.tsx, so it's not needed here.
+import { useToast } from "@/hooks/use-toast"; // Added useToast
 
-const LOCAL_STORAGE_KEY = 'encounterFlowApp_encounters_v1'; // Added versioning to key
+const LOCAL_STORAGE_KEY = 'encounterFlowApp_encounters_v1';
 
 export default function Home() {
   const [encounters, setEncounters] = useState<Encounter[]>([]);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const { toast } = useToast(); // Initialize toast
 
   useEffect(() => {
-    setIsClient(true); // Indicates component has mounted on client
+    setIsClient(true);
   }, []);
 
   useEffect(() => {
@@ -23,26 +25,41 @@ export default function Home() {
       if (storedEncounters) {
         try {
           const parsedEncounters: Encounter[] = JSON.parse(storedEncounters);
-          // Basic validation for parsed data
-          if (Array.isArray(parsedEncounters) && parsedEncounters.every(enc => typeof enc.id === 'string' && typeof enc.name === 'string')) {
+          if (Array.isArray(parsedEncounters) && parsedEncounters.every(enc => typeof enc.id === 'string' && typeof enc.name === 'string' && typeof enc.lastModified === 'number')) {
             setEncounters(parsedEncounters.sort((a,b) => b.lastModified - a.lastModified));
           } else {
             console.warn("Stored encounters data is malformed. Resetting.");
+            localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear malformed data
             setEncounters([]);
           }
         } catch (error) {
           console.error("Failed to parse encounters from localStorage", error);
-          setEncounters([]); // Reset to empty if parsing fails
+          localStorage.removeItem(LOCAL_STORAGE_KEY); // Clear malformed data on error
+          setEncounters([]);
+          toast({
+            title: "Error Loading Data",
+            description: "Could not load saved encounters. Please try refreshing.",
+            variant: "destructive",
+          });
         }
       }
     }
-  }, [isClient]);
+  }, [isClient, toast]); // Added toast to dependency array if used within this effect for error reporting
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(encounters));
+      try {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(encounters));
+      } catch (error) {
+        console.error("Failed to save encounters to localStorage", error);
+        toast({
+          title: "Error Saving Data",
+          description: "Could not save encounter changes automatically.",
+          variant: "destructive",
+        });
+      }
     }
-  }, [encounters, isClient]);
+  }, [encounters, isClient, toast]); // Added toast to dependency array
 
   const handleCreateEncounter = (name: string): string => {
     const newEncounter: Encounter = {
@@ -53,6 +70,7 @@ export default function Home() {
       lastModified: Date.now(),
     };
     setEncounters(prev => [newEncounter, ...prev].sort((a,b) => b.lastModified - a.lastModified));
+    // Toast for creation is handled in EncounterManager and then onSelectEncounter
     return newEncounter.id;
   };
 
@@ -65,9 +83,33 @@ export default function Home() {
   };
 
   const handleDeleteEncounter = (encounterId: string) => {
-    setEncounters(prev => prev.filter(enc => enc.id !== encounterId));
-    if (activeEncounterId === encounterId) {
-      setActiveEncounterId(null);
+    try {
+      const encounterToDelete = encounters.find(enc => enc.id === encounterId);
+      if (!encounterToDelete) {
+        toast({
+          title: "Deletion Failed",
+          description: "Encounter not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setEncounters(prev => prev.filter(enc => enc.id !== encounterId));
+      
+      if (activeEncounterId === encounterId) {
+        setActiveEncounterId(null);
+      }
+      toast({
+        title: "Encounter Deleted",
+        description: `"${encounterToDelete.name}" has been removed.`,
+      });
+    } catch (error) {
+      console.error("Error during encounter deletion:", error);
+      toast({
+        title: "Deletion Error",
+        description: "An unexpected error occurred while deleting the encounter.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -92,13 +134,12 @@ export default function Home() {
           </svg>
           <p className="text-muted-foreground">Loading EncounterFlow...</p>
         </div>
-        {/* <Toaster /> Removed from here */}
       </main>
     );
   }
 
   return (
-    <main className="flex-grow"> {/* Removed container and padding, handled by children */}
+    <main className="flex-grow">
       {!activeEncounter ? (
         <EncounterManager
           encounters={encounters}
@@ -108,13 +149,12 @@ export default function Home() {
         />
       ) : (
         <ActiveEncounter
-          key={activeEncounter.id}
+          key={activeEncounter.id} // Key is important here for re-mounts when activeEncounter changes
           encounter={activeEncounter}
           onEncounterUpdate={handleUpdateEncounter}
           onExitEncounter={handleExitEncounter}
         />
       )}
-      {/* <Toaster /> Removed from here */}
     </main>
   );
 }
