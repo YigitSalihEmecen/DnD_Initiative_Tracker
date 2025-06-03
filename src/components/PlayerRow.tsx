@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, MinusCircle, Skull, Trash2 } from 'lucide-react';
+import { useToast } from "@/hooks/use-toast";
 
 interface PlayerRowProps {
   player: Player;
@@ -17,7 +18,9 @@ interface PlayerRowProps {
   onHealApply: (playerId: string, heal: number) => void;
   showDeleteButton?: boolean; 
   onInitiateDelete?: (player: Player) => void; 
-  disableCombatActions?: boolean; // New prop
+  disableCombatActions?: boolean;
+  isRosterEditing?: boolean;
+  onNameChange?: (playerId: string, newName: string) => void;
 }
 
 export function PlayerRow({
@@ -29,19 +32,27 @@ export function PlayerRow({
   onHealApply,
   showDeleteButton = false,
   onInitiateDelete,
-  disableCombatActions = false, // Default to false
+  disableCombatActions = false,
+  isRosterEditing = false,
+  onNameChange,
 }: PlayerRowProps) {
   const [initiativeInput, setInitiativeInput] = useState(
     player.initiative === 0 ? '' : (player.initiative?.toString() || '')
   );
   const [damageInput, setDamageInput] = useState('');
   const [healInput, setHealInput] = useState('');
+  const [nameInput, setNameInput] = useState(player.name);
+  const { toast } = useToast();
 
   useEffect(() => {
     setInitiativeInput(
       player.initiative === 0 ? '' : (player.initiative?.toString() || '')
     );
   }, [player.initiative]);
+
+  useEffect(() => {
+    setNameInput(player.name);
+  }, [player.name]);
 
   const handleInitiativeBlur = () => {
     const value = parseInt(initiativeInput, 10);
@@ -76,17 +87,42 @@ export function PlayerRow({
     }
   };
 
+  const handleNameInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setNameInput(e.target.value);
+  };
+
+  const handleNameInputBlur = () => {
+    if (nameInput.trim() === '') {
+      setNameInput(player.name); // Revert if empty
+      toast({ title: "Name Cannot Be Empty", description: "Reverted to the original name.", variant: "destructive" });
+    } else if (onNameChange && nameInput.trim() !== player.name) {
+      onNameChange(player.id, nameInput.trim());
+    }
+    // If nameInput.trim() === player.name, do nothing
+  };
+
+
   return (
     <Card 
       className={`transition-all duration-300 ease-in-out mb-3 shadow-md ${isHighlighted ? 'bg-muted ring-2 ring-primary' : 'bg-card'}`}
       data-testid={`player-row-${player.id}`}
     >
       <CardHeader className="pb-2 pt-4 pr-4"> 
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-headline flex items-center">
-            {player.name}
+        <div className="flex justify-between items-center"> {/* Changed items-start to items-center */}
+          <CardTitle className="text-lg font-headline flex items-center w-full">
+            {isRosterEditing && onNameChange ? (
+              <Input
+                value={nameInput}
+                onChange={handleNameInputChange}
+                onBlur={handleNameInputBlur}
+                className="h-8 text-lg font-headline flex-grow p-1 border-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary mr-2"
+                aria-label={`Edit name for ${player.name}`}
+              />
+            ) : (
+              <span className="mr-2 truncate">{player.name}</span>
+            )}
             {player.currentHp <= 0 && (
-              <Skull size={18} className="ml-2 text-destructive" aria-label="Downed" />
+              <Skull size={18} className="ml-auto text-destructive shrink-0" aria-label="Downed" />
             )}
           </CardTitle>
           {showDeleteButton && onInitiateDelete && (
@@ -94,7 +130,7 @@ export function PlayerRow({
               variant="ghost"
               size="icon"
               onClick={handleDeleteClick}
-              className="text-destructive hover:bg-destructive/10 h-8 w-8"
+              className="text-destructive hover:bg-destructive/10 h-8 w-8 ml-2 shrink-0" // Added ml-2 and shrink-0
               aria-label={`Remove ${player.name}`}
             >
               <Trash2 size={18} />
@@ -128,6 +164,7 @@ export function PlayerRow({
               onBlur={handleInitiativeBlur}
               className="w-20 h-9 text-sm"
               aria-label={`Initiative for ${player.name}`}
+              disabled={isRosterEditing} // Disable initiative input if roster editing name, etc.
             />
           </div>
         )}
@@ -143,7 +180,7 @@ export function PlayerRow({
                 className="w-full sm:w-24 h-9 text-sm"
                 aria-label={`Damage for ${player.name}`}
                 min="1"
-                disabled={player.currentHp <= 0 || disableCombatActions}
+                disabled={player.currentHp <= 0 || disableCombatActions || isRosterEditing}
               />
               {damageInput && player.currentHp > 0 && (
                 <Button 
@@ -151,7 +188,7 @@ export function PlayerRow({
                   size="icon" 
                   className="rounded-full h-9 w-9 animate-fade-in" 
                   aria-label="Apply Damage"
-                  disabled={disableCombatActions}
+                  disabled={disableCombatActions || isRosterEditing}
                 >
                   <MinusCircle size={20} />
                 </Button>
@@ -166,7 +203,7 @@ export function PlayerRow({
                 className="w-full sm:w-24 h-9 text-sm"
                 aria-label={`Heal for ${player.name}`}
                 min="1"
-                disabled={disableCombatActions}
+                disabled={disableCombatActions || isRosterEditing}
               />
               {healInput && (
                 <Button 
@@ -175,7 +212,7 @@ export function PlayerRow({
                   variant="outline" 
                   className="rounded-full h-9 w-9 animate-fade-in border-primary text-primary hover:bg-primary/10" 
                   aria-label="Apply Heal"
-                  disabled={disableCombatActions}
+                  disabled={disableCombatActions || isRosterEditing}
                 >
                   <CheckCircle size={20} />
                 </Button>

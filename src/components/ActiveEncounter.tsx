@@ -184,6 +184,18 @@ export default function ActiveEncounter({
     setPlayerPendingDeletion(null);
   };
   
+  const handlePlayerNameChange = (playerId: string, newName: string) => {
+    const updatedPlayers = players.map((p) =>
+      p.id === playerId ? { ...p, name: newName } : p
+    );
+    updateEncounterInCampaign({ players: updatedPlayers });
+    setLastEditedPlayerId(playerId); 
+    toast({
+      title: "Combatant Name Updated",
+      description: `Name changed to "${newName}".`,
+    });
+  };
+
   useEffect(() => {
     if (lastEditedPlayerId) {
       const timer = setTimeout(() => {
@@ -262,6 +274,8 @@ export default function ActiveEncounter({
               showDeleteButton={showDeleteButtonOnRow}
               onInitiateDelete={handleInitiateDeletePlayer}
               disableCombatActions={rosterEditMode} 
+              isRosterEditing={rosterEditMode}
+              onNameChange={handlePlayerNameChange}
             />
           ))}
         </div>
@@ -311,7 +325,7 @@ export default function ActiveEncounter({
             <p className="text-muted-foreground mb-4">No combatants added to "{encounterName}" yet.</p>
             <Button onClick={() => {
                 updateEncounterInCampaign({stage: 'PLAYER_SETUP'});
-                if (!rosterEditMode) setRosterEditMode(true); 
+                if (!rosterEditMode) setRosterEditMode(true); // Enter edit mode if no players
             }}>
                 Add Combatants
             </Button>
