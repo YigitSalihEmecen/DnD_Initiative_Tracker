@@ -164,7 +164,7 @@ export default function EncounterManager({
           <CardTitle className="flex items-center gap-3 text-3xl font-headline text-primary">
             <FilePlus size={32} /> Create New Encounter
           </CardTitle>
-          <CardDescription className="text-base">Launch a new adventure within "{campaign.name}". Click below to begin.</CardDescription>
+          <CardDescription className="text-base">Launch a new adventure.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
