@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare, FileSignature } from 'lucide-react';
+import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -261,7 +261,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
       )}
       
       {stage === 'PRE_COMBAT' && (
-        <div className="fixed bottom-6 right-6 animate-fade-in">
+        <div className="text-center my-8 animate-fade-in">
           <Button 
             onClick={() => {onEncounterUpdate({...encounter, stage: 'COMBAT_ACTIVE'}); toast({title: `Encounter Started: ${encounterName}!`, description: "May your dice roll true."});}} 
             size="lg" 
