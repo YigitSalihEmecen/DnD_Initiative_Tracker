@@ -4,7 +4,7 @@ export interface Player {
   name: string;
   ac: number;
   hp: number;
-  initiative: number; // Initiative will be set, default to 0 or handle undefined
+  initiative: number;
   currentHp: number;
 }
 
@@ -21,6 +21,13 @@ export interface Encounter {
   name: string;
   players: Player[];
   stage: AppStage;
-  lastModified: number; // Timestamp
-  type: EncounterType; // Added encounter type
+  lastModified: number;
+  type: EncounterType;
+}
+
+export interface Campaign {
+  id: string;
+  name: string;
+  encounters: Encounter[];
+  lastModified: number;
 }

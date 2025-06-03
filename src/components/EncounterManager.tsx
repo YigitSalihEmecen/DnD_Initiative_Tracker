@@ -1,12 +1,12 @@
 
 'use client';
 
-import type { Encounter, EncounterType } from '@/types';
+import type { Encounter, EncounterType, Campaign } from '@/types';
 import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks } from 'lucide-react';
+import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -25,19 +25,17 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 
 interface EncounterManagerProps {
-  encounters: Encounter[];
-  onCreateEncounter: (name: string, type: EncounterType) => string; // Returns new encounter ID
+  campaign: Campaign;
+  onCampaignUpdate: (updatedCampaign: Campaign) => void;
   onSelectEncounter: (id: string) => void;
-  onDeleteEncounter: (id: string) => void;
-  onDeleteAllEncounters: () => void;
+  onExitCampaign: () => void;
 }
 
 export default function EncounterManager({
-  encounters,
-  onCreateEncounter,
+  campaign,
+  onCampaignUpdate,
   onSelectEncounter,
-  onDeleteEncounter,
-  onDeleteAllEncounters,
+  onExitCampaign,
 }: EncounterManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [dialogEncounterName, setDialogEncounterName] = useState('');
@@ -66,13 +64,39 @@ export default function EncounterManager({
       });
       return;
     }
-    const newId = onCreateEncounter(dialogEncounterName, dialogEncounterType);
-    onSelectEncounter(newId);
+    const newEncounter: Encounter = {
+      id: crypto.randomUUID(),
+      name: dialogEncounterName.trim() || `Encounter ${campaign.encounters.length + 1}`,
+      players: [],
+      stage: 'PLAYER_SETUP',
+      lastModified: Date.now(),
+      type: dialogEncounterType,
+    };
+    const updatedEncounters = [newEncounter, ...campaign.encounters].sort((a,b) => b.lastModified - a.lastModified);
+    onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
+    
+    onSelectEncounter(newEncounter.id); // Auto-select new encounter
     toast({
       title: "Encounter Created",
-      description: `"${dialogEncounterName}" (${dialogEncounterType}) is ready. Continuing...`,
+      description: `"${dialogEncounterName}" (${dialogEncounterType}) in campaign "${campaign.name}" is ready. Continuing...`,
     });
     setIsCreateDialogOpen(false);
+  };
+
+  const handleDeleteEncounter = (encounterId: string) => {
+    const encounterToDelete = campaign.encounters.find(enc => enc.id === encounterId);
+    if (!encounterToDelete) {
+        toast({ title: "Error", description: "Encounter not found for deletion.", variant: "destructive" });
+        return;
+    }
+    const updatedEncounters = campaign.encounters.filter(enc => enc.id !== encounterId);
+    onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
+    toast({ title: "Encounter Deleted", description: `"${encounterToDelete.name}" removed from campaign "${campaign.name}".` });
+  };
+
+  const handleDeleteAllEncountersInCampaign = () => {
+    onCampaignUpdate({ ...campaign, encounters: [], lastModified: Date.now() });
+    toast({ title: "All Encounters Deleted", description: `All encounters in campaign "${campaign.name}" removed.` });
   };
   
   const getStageDisplay = (stage?: string) => {
@@ -80,7 +104,7 @@ export default function EncounterManager({
     return stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   }
 
-  const filteredEncounters = encounters.filter(
+  const filteredEncounters = campaign.encounters.filter(
     (enc) => (enc.type || 'local') === activeTab
   );
 
@@ -95,8 +119,11 @@ export default function EncounterManager({
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-8 animate-fade-in font-code">
       <header className="mb-10 text-center">
-        <h1 className="text-5xl font-headline font-bold tracking-tight">EncounterFlow</h1>
-        <p className="text-xl text-muted-foreground mt-2">Your D&amp;D Encounter Command Center</p>
+        <Button onClick={onExitCampaign} variant="outline" className="absolute top-4 left-4 md:top-8 md:left-8">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Campaigns
+        </Button>
+        <h1 className="text-4xl font-headline font-bold tracking-tight pt-12 md:pt-0">Campaign: {campaign.name}</h1>
+        <p className="text-xl text-muted-foreground mt-2">Manage Encounters for this Campaign</p>
       </header>
       
       <Card className="shadow-xl border-primary/20">
@@ -104,7 +131,7 @@ export default function EncounterManager({
           <CardTitle className="flex items-center gap-3 text-3xl font-headline text-primary">
             <FilePlus size={32} /> Create New Encounter
           </CardTitle>
-          <CardDescription className="text-base">Launch a new adventure. Click below to begin.</CardDescription>
+          <CardDescription className="text-base">Launch a new adventure within "{campaign.name}". Click below to begin.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
@@ -116,7 +143,7 @@ export default function EncounterManager({
       <AlertDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>New Encounter Details</AlertDialogTitle>
+            <AlertDialogTitle>New Encounter Details for "{campaign.name}"</AlertDialogTitle>
             <AlertDialogDescription>
               Provide a name and select the type for your new encounter.
             </AlertDialogDescription>
@@ -143,7 +170,7 @@ export default function EncounterManager({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCreateEncounter}>Create</AlertDialogAction>
+            <AlertDialogAction onClick={handleConfirmCreateEncounter}>Create Encounter</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -151,15 +178,15 @@ export default function EncounterManager({
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-3 text-3xl font-headline">
-              <ListChecks size={32} /> Ongoing Encounters
+              <ListChecks size={32} /> Encounters in "{campaign.name}"
           </CardTitle>
-          <CardDescription className="text-base">Jump back into the action or manage your saved scenarios.</CardDescription>
+          <CardDescription className="text-base">Jump back into the action or manage your saved scenarios for this campaign.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as EncounterType)} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="local">Local</TabsTrigger>
-              <TabsTrigger value="online">Online</TabsTrigger>
+              <TabsTrigger value="local">Local Encounters</TabsTrigger>
+              <TabsTrigger value="online">Online Encounters</TabsTrigger>
             </TabsList>
             <TabsContent value="local">
               {filteredEncounters.length > 0 ? (
@@ -192,12 +219,12 @@ export default function EncounterManager({
                           <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the "{encounter.name}" encounter.
+                              This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDeleteEncounter(encounter.id)}>Delete</AlertDialogAction>
+                            <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
@@ -205,7 +232,7 @@ export default function EncounterManager({
                   </Card>
                 ))
               ) : (
-                 <p className="text-muted-foreground text-center py-4">No local encounters yet. Create one to get started!</p>
+                 <p className="text-muted-foreground text-center py-4">No {activeTab} encounters yet in "{campaign.name}". Create one to get started!</p>
               )}
             </TabsContent>
             <TabsContent value="online">
@@ -239,12 +266,12 @@ export default function EncounterManager({
                           <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
                             <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the "{encounter.name}" encounter.
+                             This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDeleteEncounter(encounter.id)}>Delete</AlertDialogAction>
+                            <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
@@ -252,12 +279,12 @@ export default function EncounterManager({
                   </Card>
                 ))
               ) : (
-                 <p className="text-muted-foreground text-center py-4">No online encounters yet. Create one to get started!</p>
+                 <p className="text-muted-foreground text-center py-4">No {activeTab} encounters yet in "{campaign.name}". Create one to get started!</p>
               )}
             </TabsContent>
           </Tabs>
         </CardContent>
-        {encounters.length > 0 && (
+        {campaign.encounters.length > 0 && (
           <CardFooter className="p-4 border-t border-border">
              <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -266,33 +293,33 @@ export default function EncounterManager({
                     size="sm"
                     className="text-destructive border-destructive hover:bg-destructive/10"
                   >
-                    Delete All Encounters
+                    Delete All Encounters in this Campaign
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                     <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete ALL of your saved encounters.
+                      This action cannot be undone. This will permanently delete ALL encounters within the campaign "{campaign.name}".
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={onDeleteAllEncounters}>Continue</AlertDialogAction>
+                    <AlertDialogAction onClick={handleDeleteAllEncountersInCampaign}>Delete All Encounters</AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
           </CardFooter>
         )}
       </Card>
-       {encounters.length === 0 && activeTab === 'local' && (
-        <Card className="shadow-lg text-center mt-[-2rem]">
+       {campaign.encounters.length === 0 && (
+        <Card className="shadow-lg text-center mt-4">
             <CardHeader>
-                <CardTitle className="text-2xl font-headline">No Encounters Yet</CardTitle>
+                <CardTitle className="text-2xl font-headline">No Encounters Yet in "{campaign.name}"</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-muted-foreground text-lg">It's quiet here... too quiet.</p>
-                <p className="text-muted-foreground mt-1">Create your first encounter to get started!</p>
+                <p className="text-muted-foreground text-lg">This campaign is quiet... too quiet.</p>
+                <p className="text-muted-foreground mt-1">Create your first encounter for this campaign to get started!</p>
             </CardContent>
         </Card>
        )}
