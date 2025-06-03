@@ -1,19 +1,21 @@
 
 'use client';
 
-import { useState, useEffect, type Dispatch, type SetStateAction } from 'react';
-import type { Encounter, Player, AppStage, EncounterType } from '@/types';
+import { useState, useEffect } from 'react';
+import type { Campaign, Encounter, Player, AppStage, EncounterType } from '@/types';
+import CampaignManagerComponent from '@/components/CampaignManager';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
-import { useToast } from "@/hooks/use-toast"; 
+import { useToast } from "@/hooks/use-toast";
 
-const LOCAL_STORAGE_KEY = 'encounterFlowApp_encounters_v1';
+const LOCAL_STORAGE_KEY_CAMPAIGNS = 'encounterFlowApp_campaigns_v2';
 
 export default function Home() {
-  const [encounters, setEncounters] = useState<Encounter[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const { toast } = useToast(); 
+  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
@@ -21,131 +23,141 @@ export default function Home() {
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
-      const storedEncounters = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedEncounters) {
+      const storedCampaigns = localStorage.getItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
+      if (storedCampaigns) {
         try {
-          const parsedEncounters: Encounter[] = JSON.parse(storedEncounters).map((enc: any) => ({
-            ...enc,
-            type: enc.type || 'local', // Default to 'local' if type is missing
-            lastModified: enc.lastModified || Date.now() // Ensure lastModified exists
+          const parsedCampaigns: Campaign[] = JSON.parse(storedCampaigns).map((camp: any) => ({
+            ...camp,
+            lastModified: camp.lastModified || Date.now(),
+            encounters: (camp.encounters || []).map((enc: any) => ({
+              ...enc,
+              type: enc.type || 'local',
+              lastModified: enc.lastModified || Date.now()
+            })).sort((a: Encounter, b: Encounter) => b.lastModified - a.lastModified)
           }));
 
-          if (Array.isArray(parsedEncounters) && parsedEncounters.every(enc => 
-              typeof enc.id === 'string' && 
-              typeof enc.name === 'string' && 
-              typeof enc.lastModified === 'number' &&
-              (enc.type === 'local' || enc.type === 'online')
+          if (Array.isArray(parsedCampaigns) && parsedCampaigns.every(camp =>
+              typeof camp.id === 'string' &&
+              typeof camp.name === 'string' &&
+              typeof camp.lastModified === 'number' &&
+              Array.isArray(camp.encounters)
             )) {
-            setEncounters(parsedEncounters.sort((a,b) => b.lastModified - a.lastModified));
+            setCampaigns(parsedCampaigns.sort((a,b) => b.lastModified - a.lastModified));
           } else {
-            console.warn("Stored encounters data is malformed or missing fields. Resetting.");
-            localStorage.removeItem(LOCAL_STORAGE_KEY); 
-            setEncounters([]);
-            toast({ 
+            console.warn("Stored campaigns data is malformed. Resetting.");
+            localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
+            setCampaigns([]);
+            toast({
               title: "Data Issue",
-              description: "Saved encounters were malformed and have been reset.",
+              description: "Saved campaign data was malformed and has been reset.",
               variant: "destructive",
             });
           }
         } catch (error) {
-          console.error("Failed to parse encounters from localStorage", error);
-          localStorage.removeItem(LOCAL_STORAGE_KEY); 
-          setEncounters([]);
+          console.error("Failed to parse campaigns from localStorage", error);
+          localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
+          setCampaigns([]);
           toast({
             title: "Error Loading Data",
-            description: "Could not load saved encounters. Please try refreshing.",
+            description: "Could not load saved campaigns. Please try refreshing.",
             variant: "destructive",
           });
         }
       }
     }
-  }, [isClient]); // Removed toast from dependencies
+  }, [isClient]);
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
       try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(encounters));
+        localStorage.setItem(LOCAL_STORAGE_KEY_CAMPAIGNS, JSON.stringify(campaigns));
       } catch (error) {
-        console.error("Failed to save encounters to localStorage", error);
+        console.error("Failed to save campaigns to localStorage", error);
          toast({
             title: "Error Saving Data",
-            description: "Could not save encounters. Changes might not persist.",
+            description: "Could not save campaigns. Changes might not persist.",
             variant: "destructive",
           });
       }
     }
-  }, [encounters, isClient]); // Removed toast from dependencies
+  }, [campaigns, isClient]);
 
-  const handleCreateEncounter = (name: string, type: EncounterType): string => {
-    const newEncounter: Encounter = {
+  const handleCreateCampaign = (name: string): string => {
+    const newCampaign: Campaign = {
       id: crypto.randomUUID(),
-      name: name || `Encounter ${encounters.length + 1}`,
-      players: [],
-      stage: 'PLAYER_SETUP',
+      name: name || `Campaign ${campaigns.length + 1}`,
+      encounters: [],
       lastModified: Date.now(),
-      type: type,
     };
-    setEncounters(prev => [newEncounter, ...prev].sort((a,b) => b.lastModified - a.lastModified));
-    return newEncounter.id;
+    setCampaigns(prev => [newCampaign, ...prev].sort((a,b) => b.lastModified - a.lastModified));
+    toast({ title: "Campaign Created", description: `"${newCampaign.name}" is ready.` });
+    return newCampaign.id;
   };
 
-  const handleUpdateEncounter = (updatedEncounter: Encounter) => {
-    setEncounters(prev =>
-      prev.map(enc =>
-        enc.id === updatedEncounter.id ? { ...updatedEncounter, lastModified: Date.now() } : enc
+  const handleUpdateCampaign = (updatedCampaign: Campaign) => {
+    setCampaigns(prev =>
+      prev.map(camp =>
+        camp.id === updatedCampaign.id ? { ...updatedCampaign, lastModified: Date.now() } : camp
       ).sort((a,b) => b.lastModified - a.lastModified)
     );
   };
 
-  const handleDeleteEncounter = (encounterId: string) => {
-    try {
-      const encounterToDelete = encounters.find(enc => enc.id === encounterId);
-      if (!encounterToDelete) {
-        toast({
-          title: "Deletion Failed",
-          description: "Encounter not found.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setEncounters(prev => prev.filter(enc => enc.id !== encounterId));
-      
-      if (activeEncounterId === encounterId) {
-        setActiveEncounterId(null);
-      }
-      toast({
-        title: "Encounter Deleted",
-        description: `"${encounterToDelete.name}" has been removed.`,
-      });
-    } catch (error) {
-       toast({
-        title: "Deletion Error",
-        description: "An unexpected error occurred while deleting the encounter.",
-        variant: "destructive",
-      });
+  const handleDeleteCampaign = (campaignId: string) => {
+    const campaignToDelete = campaigns.find(c => c.id === campaignId);
+    if (!campaignToDelete) {
+      toast({ title: "Deletion Failed", description: "Campaign not found.", variant: "destructive" });
+      return;
     }
+    setCampaigns(prev => prev.filter(camp => camp.id !== campaignId));
+    if (activeCampaignId === campaignId) {
+      setActiveCampaignId(null);
+      setActiveEncounterId(null);
+    }
+    toast({ title: "Campaign Deleted", description: `"${campaignToDelete.name}" has been removed.` });
+  };
+  
+  const handleDeleteAllCampaigns = () => {
+    setCampaigns([]);
+    setActiveCampaignId(null);
+    setActiveEncounterId(null);
+    toast({ title: "All Campaigns Deleted", description: "All saved campaigns have been removed." });
   };
 
-  const handleDeleteAllEncounters = () => {
-    setEncounters([]); 
-    setActiveEncounterId(null); 
-     toast({
-        title: "All Encounters Deleted",
-        description: "All saved encounters have been removed.",
-      });
+  const handleSelectCampaign = (campaignId: string) => {
+    setActiveCampaignId(campaignId);
+    setActiveEncounterId(null); // Reset active encounter when changing campaign
+    setCampaigns(prev => prev.map(c => c.id === campaignId ? {...c, lastModified: Date.now()} : c).sort((a,b) => b.lastModified - a.lastModified));
+  };
+
+  const handleExitCampaign = () => {
+    setActiveCampaignId(null);
+    setActiveEncounterId(null);
   };
 
   const handleSelectEncounter = (encounterId: string) => {
     setActiveEncounterId(encounterId);
-     setEncounters(prev => prev.map(e => e.id === encounterId ? {...e, lastModified: Date.now()} : e).sort((a,b) => b.lastModified - a.lastModified));
+    // Touch the campaign to update its lastModified
+    if (activeCampaignId) {
+        const campaign = campaigns.find(c => c.id === activeCampaignId);
+        if (campaign) {
+            handleUpdateCampaign({...campaign}); // This will update lastModified
+        }
+    }
   };
 
   const handleExitEncounter = () => {
     setActiveEncounterId(null);
+     // Touch the campaign to update its lastModified
+    if (activeCampaignId) {
+        const campaign = campaigns.find(c => c.id === activeCampaignId);
+        if (campaign) {
+            handleUpdateCampaign({...campaign}); 
+        }
+    }
   };
 
-  const activeEncounter = encounters.find(enc => enc.id === activeEncounterId);
+  const activeCampaign = campaigns.find(camp => camp.id === activeCampaignId);
+  const activeEncounter = activeCampaign?.encounters.find(enc => enc.id === activeEncounterId);
 
   if (!isClient) {
     return (
@@ -161,24 +173,36 @@ export default function Home() {
     );
   }
 
+  if (!activeCampaign) {
+    return (
+      <CampaignManagerComponent
+        campaigns={campaigns}
+        onCreateCampaign={handleCreateCampaign}
+        onSelectCampaign={handleSelectCampaign}
+        onDeleteCampaign={handleDeleteCampaign}
+        onDeleteAllCampaigns={handleDeleteAllCampaigns}
+      />
+    );
+  }
+
+  if (!activeEncounter) {
+    return (
+      <EncounterManager
+        campaign={activeCampaign}
+        onCampaignUpdate={handleUpdateCampaign}
+        onSelectEncounter={handleSelectEncounter}
+        onExitCampaign={handleExitCampaign}
+      />
+    );
+  }
+
   return (
-    <main className="flex-grow">
-      {!activeEncounter ? (
-        <EncounterManager
-          encounters={encounters}
-          onCreateEncounter={handleCreateEncounter}
-          onSelectEncounter={handleSelectEncounter}
-          onDeleteEncounter={handleDeleteEncounter}
-          onDeleteAllEncounters={handleDeleteAllEncounters} 
-        />
-      ) : (
-        <ActiveEncounter
-          key={activeEncounter.id} 
-          encounter={activeEncounter}
-          onEncounterUpdate={handleUpdateEncounter}
-          onExitEncounter={handleExitEncounter}
-        />
-      )}
-    </main>
+    <ActiveEncounter
+      key={activeEncounter.id}
+      encounter={activeEncounter}
+      campaign={activeCampaign} // Pass campaign for context if needed for updates
+      onCampaignUpdate={handleUpdateCampaign} // This allows ActiveEncounter to update the whole campaign
+      onExitEncounter={handleExitEncounter}
+    />
   );
 }

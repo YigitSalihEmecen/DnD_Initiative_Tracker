@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react';
-import type { Player, AppStage, Encounter } from '@/types';
+import type { Player, AppStage, Encounter, Campaign } from '@/types';
 import { PlayerRow } from './PlayerRow';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,11 +22,17 @@ import {
 
 interface ActiveEncounterProps {
   encounter: Encounter;
-  onEncounterUpdate: (updatedEncounter: Encounter) => void;
+  campaign: Campaign; // The parent campaign
+  onCampaignUpdate: (updatedCampaign: Campaign) => void; // To update the entire campaign
   onExitEncounter: () => void;
 }
 
-export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEncounter }: ActiveEncounterProps) {
+export default function ActiveEncounter({ 
+  encounter, 
+  campaign, 
+  onCampaignUpdate, 
+  onExitEncounter 
+}: ActiveEncounterProps) {
   const [lastEditedPlayerId, setLastEditedPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState('');
   const [playerAC, setPlayerAC] = useState('');
@@ -37,6 +43,15 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
   const [playerPendingDeletion, setPlayerPendingDeletion] = useState<Player | null>(null);
 
   const { name: encounterName, players, stage } = encounter;
+
+  const updateEncounterInCampaign = (updatedEncounterData: Partial<Encounter>) => {
+    const updatedEncounter = { ...encounter, ...updatedEncounterData, lastModified: Date.now() };
+    const updatedEncountersInCampaign = campaign.encounters.map(enc =>
+      enc.id === updatedEncounter.id ? updatedEncounter : enc
+    ).sort((a,b) => b.lastModified - a.lastModified);
+    onCampaignUpdate({ ...campaign, encounters: updatedEncountersInCampaign, lastModified: Date.now() });
+  };
+
 
   const handleAddPlayer = (e: FormEvent) => {
     e.preventDefault();
@@ -61,7 +76,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
       currentHp: hp,
     };
     const updatedPlayers = [...players, newPlayer];
-    onEncounterUpdate({ ...encounter, players: updatedPlayers });
+    updateEncounterInCampaign({ players: updatedPlayers });
     setPlayerName('');
     setPlayerAC('');
     setPlayerHP('');
@@ -73,7 +88,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
 
   const handleInitiativeChange = (playerId: string, initiative: number) => {
     const updatedPlayers = players.map((p) => (p.id === playerId ? { ...p, initiative } : p));
-    onEncounterUpdate({ ...encounter, players: updatedPlayers });
+    updateEncounterInCampaign({ players: updatedPlayers });
   };
 
   const confirmInitiatives = () => {
@@ -86,7 +101,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
       return;
     }
     const sortedPlayers = [...players].sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
-    onEncounterUpdate({ ...encounter, players: sortedPlayers, stage: 'PRE_COMBAT' });
+    updateEncounterInCampaign({ players: sortedPlayers, stage: 'PRE_COMBAT' });
      toast({
       title: "Initiatives Set",
       description: `Combatants ordered for "${encounterName}". Ready to start!`,
@@ -97,7 +112,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     const updatedPlayers = players.map((p) =>
       p.id === playerId ? { ...p, currentHp: p.currentHp - damage } : p
     );
-    onEncounterUpdate({ ...encounter, players: updatedPlayers });
+    updateEncounterInCampaign({ players: updatedPlayers });
     setLastEditedPlayerId(playerId);
   };
   
@@ -105,7 +120,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     const updatedPlayers = players.map((p) =>
       p.id === playerId ? { ...p, currentHp: Math.min(p.currentHp + heal, p.hp) } : p
     );
-    onEncounterUpdate({ ...encounter, players: updatedPlayers });
+    updateEncounterInCampaign({ players: updatedPlayers });
     setLastEditedPlayerId(playerId);
   };
 
@@ -137,7 +152,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
       updatedStage = 'PLAYER_SETUP';
     }
 
-    onEncounterUpdate({ ...encounter, players: updatedPlayers, stage: updatedStage });
+    updateEncounterInCampaign({ players: updatedPlayers, stage: updatedStage });
     
     toast({
       title: "Combatant Removed",
@@ -145,7 +160,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     });
     setPlayerPendingDeletion(null);
     if (updatedPlayers.length === 0) {
-      setRosterEditMode(false); // Exit edit mode if no players left
+      setRosterEditMode(false); 
     }
   };
 
@@ -164,14 +179,13 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
 
   const showDeleteButtonOnRow = rosterEditMode;
 
-
   return (
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
       <header className="mb-8 text-center">
         <h1 className="text-4xl font-headline font-bold">
           {encounterName}
         </h1>
-        <p className="text-muted-foreground">D&amp;D Initiative and Combat Tracker</p>
+        <p className="text-muted-foreground">Campaign: {campaign.name} &bull; D&amp;D Initiative and Combat Tracker</p>
       </header>
 
       {stage === 'PLAYER_SETUP' && (
@@ -225,7 +239,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
       
       {stage === 'PLAYER_SETUP' && players.length > 0 && (
         <div className="text-center mb-8 animate-fade-in">
-          <Button onClick={() => { onEncounterUpdate({...encounter, stage: 'INITIATIVE_SETUP'}); toast({title: "Set Initiatives", description: `Enter initiative scores for each combatant in "${encounterName}".`}); }} size="lg">
+          <Button onClick={() => { updateEncounterInCampaign({ stage: 'INITIATIVE_SETUP' }); toast({title: "Set Initiatives", description: `Enter initiative scores for each combatant in "${encounterName}".`}); }} size="lg">
             Proceed to Initiative <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
@@ -261,9 +275,9 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
       )}
       
       {stage === 'PRE_COMBAT' && (
-        <div className="text-center my-8 animate-fade-in">
+         <div className="text-center my-8 animate-fade-in">
           <Button 
-            onClick={() => {onEncounterUpdate({...encounter, stage: 'COMBAT_ACTIVE'}); toast({title: `Encounter Started: ${encounterName}!`, description: "May your dice roll true."});}} 
+            onClick={() => {updateEncounterInCampaign({stage: 'COMBAT_ACTIVE'}); toast({title: `Encounter Started: ${encounterName}!`, description: "May your dice roll true."});}} 
             size="lg" 
             className="rounded-full w-20 h-20 shadow-2xl text-lg"
             disabled={players.length === 0}
@@ -286,7 +300,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
       {players.length === 0 && stage !== 'PLAYER_SETUP' && (
         <div className="text-center py-10">
             <p className="text-muted-foreground mb-4">No combatants added to "{encounterName}" yet.</p>
-            <Button onClick={() => onEncounterUpdate({...encounter, stage: 'PLAYER_SETUP'})}>
+            <Button onClick={() => updateEncounterInCampaign({stage: 'PLAYER_SETUP'})}>
                 Add Combatants
             </Button>
         </div>
@@ -313,4 +327,3 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     </div>
   );
 }
-
