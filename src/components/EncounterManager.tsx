@@ -159,19 +159,9 @@ export default function EncounterManager({
         <p className="text-xl text-muted-foreground mt-2">Manage Encounters for this Campaign</p>
       </header>
       
-      <Card className="shadow-xl border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-3xl font-headline text-primary">
-            <FilePlus size={32} /> Create New Encounter
-          </CardTitle>
-          <CardDescription className="text-base">Launch a new adventure.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
-            <FilePlus className="mr-2" /> Create New Encounter
-          </Button>
-        </CardContent>
-      </Card>
+      <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
+        <FilePlus className="mr-2" /> Create New Encounter
+      </Button>
 
       {/* Create Encounter Dialog */}
       <AlertDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
