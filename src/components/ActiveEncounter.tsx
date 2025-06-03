@@ -37,6 +37,7 @@ export default function ActiveEncounter({
   const [playerName, setPlayerName] = useState('');
   const [playerAC, setPlayerAC] = useState('');
   const [playerHP, setPlayerHP] = useState('');
+  const [playerInitiative, setPlayerInitiative] = useState(''); // For adding new player in edit mode during combat
   const { toast } = useToast();
 
   const [rosterEditMode, setRosterEditMode] = useState(false);
@@ -52,19 +53,32 @@ export default function ActiveEncounter({
     onCampaignUpdate({ ...campaign, encounters: updatedEncountersInCampaign, lastModified: Date.now() });
   };
 
+  const showInitiativeInputFieldInAddForm = rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE');
 
   const handleAddPlayer = (e: FormEvent) => {
     e.preventDefault();
     const ac = parseInt(playerAC, 10);
     const hp = parseInt(playerHP, 10);
+    const initiativeVal = parseInt(playerInitiative, 10);
 
-    if (!playerName.trim() || isNaN(ac) || isNaN(hp) || ac < 0 || hp <= 0) {
-      toast({
-        title: "Invalid Input",
-        description: "Please enter valid Name, AC (non-negative), and HP (positive).",
-        variant: "destructive",
-      });
-      return;
+    if (showInitiativeInputFieldInAddForm) {
+      if (!playerName.trim() || isNaN(ac) || isNaN(hp) || ac < 0 || hp <= 0 || isNaN(initiativeVal)) {
+        toast({
+          title: "Invalid Input",
+          description: "Please enter valid Name, AC (non-negative), HP (positive), and Initiative.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } else {
+      if (!playerName.trim() || isNaN(ac) || isNaN(hp) || ac < 0 || hp <= 0) {
+        toast({
+          title: "Invalid Input",
+          description: "Please enter valid Name, AC (non-negative), and HP (positive).",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     const newPlayer: Player = {
@@ -72,14 +86,24 @@ export default function ActiveEncounter({
       name: playerName.trim(),
       ac,
       hp,
-      initiative: 0,
+      initiative: showInitiativeInputFieldInAddForm ? initiativeVal : 0,
       currentHp: hp,
     };
-    const updatedPlayers = [...players, newPlayer];
-    updateEncounterInCampaign({ players: updatedPlayers });
+
+    let updatedPlayersList = [...players, newPlayer];
+    if (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') {
+      updatedPlayersList.sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
+    }
+    // If stage is PLAYER_SETUP or INITIATIVE_SETUP, sorting will happen later or on confirm.
+
+    updateEncounterInCampaign({ players: updatedPlayersList });
+    
     setPlayerName('');
     setPlayerAC('');
     setPlayerHP('');
+    if (showInitiativeInputFieldInAddForm) {
+      setPlayerInitiative('');
+    }
     toast({
       title: "Combatant Added",
       description: `${newPlayer.name} has been added to "${encounterName}".`,
@@ -128,7 +152,13 @@ export default function ActiveEncounter({
     setRosterEditMode(prev => {
       const newMode = !prev;
       if (newMode) {
-        toast({ title: "Edit Mode", description: "Click the trash icon on a combatant to remove them." });
+        let description = "Click the trash icon on a combatant to remove them.";
+        if (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') {
+          description += " You can also add new combatants with initiative.";
+        } else {
+          description += " You can also add new combatants.";
+        }
+        toast({ title: "Edit Mode Active", description });
       } else {
         toast({ title: "Edit Mode Off", description: "Finished editing." });
       }
@@ -178,6 +208,8 @@ export default function ActiveEncounter({
   }, [lastEditedPlayerId]);
 
   const showDeleteButtonOnRow = rosterEditMode;
+  const formGridColsClass = showInitiativeInputFieldInAddForm ? "md:grid-cols-5" : "md:grid-cols-4";
+
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
@@ -188,16 +220,16 @@ export default function ActiveEncounter({
         <p className="text-muted-foreground">Campaign: {campaign.name} &bull; D&amp;D Initiative and Combat Tracker</p>
       </header>
 
-      {stage === 'PLAYER_SETUP' && (
+      {(stage === 'PLAYER_SETUP' || rosterEditMode) && (
         <Card className="mb-8 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl font-headline">
               <UserPlus size={28} aria-hidden="true" /> Add Combatants
             </CardTitle>
-            <CardDescription>Enter player or monster details to add them to "{encounterName}".</CardDescription>
+            <CardDescription>Enter player or monster details to add them to "{encounterName}". {rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') ? "Provide initiative for correct placement." : ""}</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleAddPlayer} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
+            <form onSubmit={handleAddPlayer} className={`grid grid-cols-1 sm:grid-cols-2 ${formGridColsClass} gap-4 items-end`}>
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="playerName" className="text-sm font-medium">Name</label>
                 <Input id="playerName" value={playerName} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerName(e.target.value)} placeholder="e.g., Orc Raider" required />
@@ -210,6 +242,12 @@ export default function ActiveEncounter({
                 <label htmlFor="playerHP" className="text-sm font-medium">Hit Points (HP)</label>
                 <Input id="playerHP" type="number" value={playerHP} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerHP(e.target.value)} placeholder="e.g., 15" required min="1"/>
               </div>
+              {showInitiativeInputFieldInAddForm && (
+                <div className="flex flex-col gap-1.5">
+                  <label htmlFor="playerInitiative" className="text-sm font-medium">Initiative</label>
+                  <Input id="playerInitiative" type="number" value={playerInitiative} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerInitiative(e.target.value)} placeholder="e.g., 18" required />
+                </div>
+              )}
               <Button type="submit" className="w-full sm:w-auto md:self-end h-10">
                 <UserPlus className="mr-2 h-4 w-4" /> Add
               </Button>
@@ -218,26 +256,30 @@ export default function ActiveEncounter({
         </Card>
       )}
 
-      {players.length > 0 && (stage === 'PLAYER_SETUP' || stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT') && (
+      {players.length > 0 && (stage === 'PLAYER_SETUP' || stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || rosterEditMode) && (
         <div className="mb-8 animate-fade-in">
-          <h2 className="text-xl font-headline font-semibold mb-3">Current Combatants:</h2>
+          <h2 className="text-xl font-headline font-semibold mb-3">
+            {stage === 'COMBAT_ACTIVE' ? 'Combat Active:' : 
+             stage === 'PRE_COMBAT' ? 'Initiative Order:' : 
+             'Current Combatants:'}
+          </h2>
           {players.map((p) => (
             <PlayerRow
               key={p.id}
               player={p}
               stage={stage}
-              isHighlighted={false} 
+              isHighlighted={p.id === lastEditedPlayerId} 
               onInitiativeChange={handleInitiativeChange}
               onDamageApply={handleDamageApply} 
               onHealApply={handleHealApply}
-              showDeleteButton={showDeleteButtonOnRow}
+              showDeleteButton={showDeleteButtonOnRow && (stage !== 'COMBAT_ACTIVE' || p.currentHp > 0)} // Only show delete if not downed in combat
               onInitiateDelete={handleInitiateDeletePlayer}
             />
           ))}
         </div>
       )}
       
-      {stage === 'PLAYER_SETUP' && players.length > 0 && (
+      {stage === 'PLAYER_SETUP' && players.length > 0 && !rosterEditMode && (
         <div className="text-center mb-8 animate-fade-in">
           <Button onClick={() => { updateEncounterInCampaign({ stage: 'INITIATIVE_SETUP' }); toast({title: "Set Initiatives", description: `Enter initiative scores for each combatant in "${encounterName}".`}); }} size="lg">
             Proceed to Initiative <ArrowRight className="ml-2 h-5 w-5" />
@@ -245,7 +287,7 @@ export default function ActiveEncounter({
         </div>
       )}
 
-      {stage === 'INITIATIVE_SETUP' && (
+      {stage === 'INITIATIVE_SETUP' && !rosterEditMode &&(
         <div className="text-center mb-8 animate-fade-in">
           <Button onClick={confirmInitiatives} size="lg" disabled={players.length === 0}>
             <ListOrdered className="mr-2 h-5 w-5" /> Confirm Initiatives & Order
@@ -253,7 +295,7 @@ export default function ActiveEncounter({
         </div>
       )}
 
-      {(stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') && (
+      {(stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') && !rosterEditMode && (
          <div className="mb-8 animate-fade-in">
           <h2 className="text-xl font-headline font-semibold mb-3">
             {stage === 'COMBAT_ACTIVE' ? `Combat Active!` : `Initiative Order:`}
@@ -274,7 +316,7 @@ export default function ActiveEncounter({
         </div>
       )}
       
-      {stage === 'PRE_COMBAT' && (
+      {stage === 'PRE_COMBAT' && !rosterEditMode && (
          <div className="text-center my-8 animate-fade-in">
           <Button 
             onClick={() => {updateEncounterInCampaign({stage: 'COMBAT_ACTIVE'}); toast({title: `Encounter Started: ${encounterName}!`, description: "May your dice roll true."});}} 
@@ -297,10 +339,14 @@ export default function ActiveEncounter({
           </Button>
       </div>
 
-      {players.length === 0 && stage !== 'PLAYER_SETUP' && (
+      {players.length === 0 && stage !== 'PLAYER_SETUP' && !rosterEditMode &&(
         <div className="text-center py-10">
             <p className="text-muted-foreground mb-4">No combatants added to "{encounterName}" yet.</p>
-            <Button onClick={() => updateEncounterInCampaign({stage: 'PLAYER_SETUP'})}>
+            <Button onClick={() => {
+                updateEncounterInCampaign({stage: 'PLAYER_SETUP'});
+                if (!rosterEditMode) setRosterEditMode(true); // Enter edit mode if adding from empty
+                 toast({ title: "Add Combatants", description: `Switched to player setup for "${encounterName}".` });
+            }}>
                 Add Combatants
             </Button>
         </div>
@@ -327,3 +373,5 @@ export default function ActiveEncounter({
     </div>
   );
 }
+
+    
