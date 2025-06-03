@@ -283,9 +283,11 @@ export default function EncounterManager({
                       </p>
                     </div>
                     <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
-                      <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                        <PlayCircle className="mr-2" /> Continue
-                      </Button>
+                      {!isEncounterEditMode && (
+                        <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
+                          <PlayCircle className="mr-2" /> Continue
+                        </Button>
+                      )}
                       {isEncounterEditMode && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -344,9 +346,11 @@ export default function EncounterManager({
                       </p>
                     </div>
                     <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
-                      <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                        <PlayCircle className="mr-2" /> Continue
-                      </Button>
+                      {!isEncounterEditMode && (
+                        <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
+                          <PlayCircle className="mr-2" /> Continue
+                        </Button>
+                      )}
                       {isEncounterEditMode && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>

@@ -218,9 +218,11 @@ export default function CampaignManagerComponent({
                   </p>
                 </div>
                 <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
-                  <Button onClick={() => onSelectCampaign(campaign.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                    <PlayCircle className="mr-2" /> Manage Encounters
-                  </Button>
+                  {!isCampaignEditMode && (
+                    <Button onClick={() => onSelectCampaign(campaign.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
+                      <PlayCircle className="mr-2" /> Manage Encounters
+                    </Button>
+                  )}
                   {isCampaignEditMode && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
