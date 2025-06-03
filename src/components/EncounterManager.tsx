@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { Encounter } from '@/types';
@@ -119,9 +120,13 @@ export default function EncounterManager({
                   </Button>
                   <Button
                     onClick={() => {
-                      if (confirm(`Are you sure you want to delete "${encounter.name}"? This cannot be undone.`)) {
+                      if (window.confirm(`Are you sure you want to delete "${encounter.name}"? This cannot be undone.`)) {
                         onDeleteEncounter(encounter.id);
-                        toast({ title: "Encounter Deleted", description: `"${encounter.name}" has been removed.` });
+                        try {
+                          toast({ title: "Encounter Deleted", description: `"${encounter.name}" has been removed.` });
+                        } catch (e) {
+                          console.error("Error displaying delete toast:", e);
+                        }
                       }
                     }}
                     variant="destructive"
