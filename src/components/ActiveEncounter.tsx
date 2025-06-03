@@ -149,21 +149,8 @@ export default function ActiveEncounter({
   };
 
   const handleToggleRosterEditMode = () => {
-    setRosterEditMode(prev => {
-      const newMode = !prev;
-      if (newMode) {
-        let description = "Click the trash icon on a combatant to remove them.";
-        if (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') {
-          description += " You can also add new combatants with initiative.";
-        } else {
-          description += " You can also add new combatants.";
-        }
-        toast({ title: "Edit Mode Active", description });
-      } else {
-        toast({ title: "Edit Mode Off", description: "Finished editing." });
-      }
-      return newMode;
-    });
+    setRosterEditMode(prev => !prev);
+    // Toasts removed as per user request
   };
 
   const handleInitiateDeletePlayer = (player: Player) => {
