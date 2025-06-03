@@ -33,6 +33,7 @@ export default function Home() {
               ...enc,
               lastModified: enc.lastModified || Date.now(),
               createdDate: enc.createdDate || enc.lastModified || Date.now(),
+              isFinished: enc.isFinished || false, // Default isFinished to false
             })).sort((a: Encounter, b: Encounter) => b.lastModified - a.lastModified)
           }));
 
@@ -219,3 +220,4 @@ export default function Home() {
     />
   );
 }
+

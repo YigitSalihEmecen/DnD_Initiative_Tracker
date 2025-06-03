@@ -6,7 +6,7 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft, Pencil, XSquare } from 'lucide-react';
+import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft, Pencil, XSquare, CheckCircle } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -21,6 +21,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+
 
 interface EncounterManagerProps {
   campaign: Campaign;
@@ -71,6 +73,7 @@ export default function EncounterManager({
       stage: 'PLAYER_SETUP',
       createdDate: Date.now(),
       lastModified: Date.now(),
+      isFinished: false,
     };
     const updatedEncounters = [newEncounter, ...campaign.encounters].sort((a,b) => b.lastModified - a.lastModified);
     onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
@@ -163,7 +166,6 @@ export default function EncounterManager({
         <FilePlus className="mr-2" /> Create New Encounter
       </Button>
 
-      {/* Create Encounter Dialog */}
       <AlertDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -188,7 +190,6 @@ export default function EncounterManager({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Encounter Name Dialog */}
       <AlertDialog open={!!editingEncounterId} onOpenChange={(isOpen) => { if (!isOpen) setEditingEncounterId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -235,6 +236,7 @@ export default function EncounterManager({
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
+                    {encounter.isFinished && <Badge variant="outline" className="ml-2 border-green-600 text-green-600 bg-green-500/10">Finished</Badge>}
                   </p>
                    {encounter.createdDate && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -326,11 +328,14 @@ export default function EncounterManager({
         <Button onClick={onExitCampaign} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Campaigns
         </Button>
-        <Button onClick={handleToggleEncounterEditMode} variant="outline">
-          {isEncounterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
-          {isEncounterEditMode ? 'Done Editing' : 'Edit Encounters'}
-        </Button>
+        {campaign.encounters.length > 0 && (
+          <Button onClick={handleToggleEncounterEditMode} variant="outline">
+            {isEncounterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
+            {isEncounterEditMode ? 'Done Editing' : 'Edit Encounters'}
+          </Button>
+        )}
       </div>
     </div>
   );
 }
+

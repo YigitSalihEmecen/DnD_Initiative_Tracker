@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare } from 'lucide-react';
+import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare, CheckSquare } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -42,8 +42,10 @@ export default function ActiveEncounter({
 
   const [rosterEditMode, setRosterEditMode] = useState(false);
   const [playerPendingDeletion, setPlayerPendingDeletion] = useState<Player | null>(null);
+  const [isFinishConfirmOpen, setIsFinishConfirmOpen] = useState(false);
 
-  const { name: encounterName, players, stage } = encounter;
+
+  const { name: encounterName, players, stage, isFinished } = encounter;
 
   const updateEncounterInCampaign = (updatedEncounterData: Partial<Encounter>) => {
     const updatedEncounter = { ...encounter, ...updatedEncounterData, lastModified: Date.now() };
@@ -94,8 +96,7 @@ export default function ActiveEncounter({
     if (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP') {
       updatedPlayersList.sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
     }
-    // If stage is PLAYER_SETUP, sorting will happen later or on confirm.
-
+    
     updateEncounterInCampaign({ players: updatedPlayersList });
     
     setPlayerName('');
@@ -194,6 +195,16 @@ export default function ActiveEncounter({
       title: "Combatant Name Updated",
       description: `Name changed to "${newName}".`,
     });
+  };
+
+  const handleConfirmFinishEncounter = () => {
+    updateEncounterInCampaign({ isFinished: true });
+    toast({
+      title: "Encounter Finished",
+      description: `"${encounterName}" has been marked as complete.`,
+    });
+    setIsFinishConfirmOpen(false);
+    onExitEncounter();
   };
 
   useEffect(() => {
@@ -316,8 +327,13 @@ export default function ActiveEncounter({
           </Button>
           <Button onClick={handleToggleRosterEditMode} variant="outline">
             {rosterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
-            {rosterEditMode ? 'Done Editing' : 'Edit'}
+            {rosterEditMode ? 'Done Editing' : 'Edit Roster'}
           </Button>
+          {stage === 'COMBAT_ACTIVE' && !isFinished && !rosterEditMode && (
+            <Button onClick={() => setIsFinishConfirmOpen(true)} variant="default">
+              <CheckSquare className="mr-2 h-4 w-4" /> Finish Encounter
+            </Button>
+          )}
       </div>
 
       {players.length === 0 && stage !== 'PLAYER_SETUP' && !rosterEditMode &&(
@@ -325,7 +341,7 @@ export default function ActiveEncounter({
             <p className="text-muted-foreground mb-4">No combatants added to "{encounterName}" yet.</p>
             <Button onClick={() => {
                 updateEncounterInCampaign({stage: 'PLAYER_SETUP'});
-                if (!rosterEditMode) setRosterEditMode(true); // Enter edit mode if no players
+                if (!rosterEditMode) setRosterEditMode(true); 
             }}>
                 Add Combatants
             </Button>
@@ -350,6 +366,27 @@ export default function ActiveEncounter({
           </AlertDialogContent>
         </AlertDialog>
       )}
+
+      {isFinishConfirmOpen && (
+        <AlertDialog open={isFinishConfirmOpen} onOpenChange={setIsFinishConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Finish Encounter?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to mark "{encounterName}" as finished? Combatants and their statuses will be saved.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={() => setIsFinishConfirmOpen(false)}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmFinishEncounter}>
+                Finish Encounter
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+
     </div>
   );
 }
+

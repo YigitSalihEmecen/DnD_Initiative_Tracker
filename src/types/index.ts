@@ -20,7 +20,8 @@ export interface Encounter {
   players: Player[];
   stage: AppStage;
   lastModified: number;
-  createdDate: number; // Added this field
+  createdDate: number;
+  isFinished?: boolean; // Added this field
 }
 
 export interface Campaign {
@@ -29,3 +30,4 @@ export interface Campaign {
   encounters: Encounter[];
   lastModified: number;
 }
+
