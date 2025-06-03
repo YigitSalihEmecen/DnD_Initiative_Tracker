@@ -147,7 +147,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
                 <Input id="playerHP" type="number" value={playerHP} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerHP(e.target.value)} placeholder="e.g., 15" required min="1"/>
               </div>
               <Button type="submit" className="w-full sm:w-auto md:self-end h-10">
-                <UserPlus className="mr-2 h-4 w-4" /> Add to Encounter
+                <UserPlus className="mr-2 h-4 w-4" /> Add
               </Button>
             </form>
           </CardContent>
