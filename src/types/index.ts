@@ -1,3 +1,4 @@
+
 export interface Player {
   id: string;
   name: string;
@@ -13,10 +14,13 @@ export type AppStage =
   | 'PRE_COMBAT'
   | 'COMBAT_ACTIVE';
 
+export type EncounterType = 'local' | 'online';
+
 export interface Encounter {
   id: string;
   name: string;
   players: Player[];
   stage: AppStage;
   lastModified: number; // Timestamp
+  type: EncounterType; // Added encounter type
 }
