@@ -21,6 +21,7 @@ interface PlayerRowProps {
   disableCombatActions?: boolean;
   isRosterEditing?: boolean;
   onNameChange?: (playerId: string, newName: string) => void;
+  isReviewMode?: boolean;
 }
 
 export function PlayerRow({
@@ -35,6 +36,7 @@ export function PlayerRow({
   disableCombatActions = false,
   isRosterEditing = false,
   onNameChange,
+  isReviewMode = false,
 }: PlayerRowProps) {
   const [initiativeInput, setInitiativeInput] = useState(
     player.initiative === 0 ? '' : (player.initiative?.toString() || '')
@@ -55,6 +57,7 @@ export function PlayerRow({
   }, [player.name]);
 
   const handleInitiativeBlur = () => {
+    if (isReviewMode) return;
     const value = parseInt(initiativeInput, 10);
     if (!isNaN(value)) {
       onInitiativeChange(player.id, value);
@@ -65,6 +68,7 @@ export function PlayerRow({
 
   const handleDamageSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (isReviewMode) return;
     const value = parseInt(damageInput, 10);
     if (!isNaN(value) && value > 0) {
       onDamageApply(player.id, value);
@@ -74,6 +78,7 @@ export function PlayerRow({
   
   const handleHealSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (isReviewMode) return;
     const value = parseInt(healInput, 10);
     if (!isNaN(value) && value > 0) {
       onHealApply(player.id, value);
@@ -82,23 +87,23 @@ export function PlayerRow({
   };
 
   const handleDeleteClick = () => {
-    if (onInitiateDelete) {
-      onInitiateDelete(player);
-    }
+    if (isReviewMode || !onInitiateDelete) return;
+    onInitiateDelete(player);
   };
 
   const handleNameInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (isReviewMode) return;
     setNameInput(e.target.value);
   };
 
   const handleNameInputBlur = () => {
+    if (isReviewMode) return;
     if (nameInput.trim() === '') {
       setNameInput(player.name); // Revert if empty
       toast({ title: "Name Cannot Be Empty", description: "Reverted to the original name.", variant: "destructive" });
     } else if (onNameChange && nameInput.trim() !== player.name) {
       onNameChange(player.id, nameInput.trim());
     }
-    // If nameInput.trim() === player.name, do nothing
   };
 
 
@@ -108,15 +113,18 @@ export function PlayerRow({
       data-testid={`player-row-${player.id}`}
     >
       <CardHeader className="pb-2 pt-4 pr-4"> 
-        <div className="flex justify-between items-center"> {/* Changed items-start to items-center */}
+        <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-headline flex items-center w-full">
-            {isRosterEditing && onNameChange ? (
+            {isReviewMode ? (
+              <span className="mr-2 truncate">{player.name}</span>
+            ) : isRosterEditing && onNameChange ? (
               <Input
                 value={nameInput}
                 onChange={handleNameInputChange}
                 onBlur={handleNameInputBlur}
                 className="h-8 text-lg font-headline flex-grow p-1 border-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary mr-2"
                 aria-label={`Edit name for ${player.name}`}
+                disabled={isReviewMode}
               />
             ) : (
               <span className="mr-2 truncate">{player.name}</span>
@@ -125,12 +133,12 @@ export function PlayerRow({
               <Skull size={18} className="ml-auto text-destructive shrink-0" aria-label="Downed" />
             )}
           </CardTitle>
-          {showDeleteButton && onInitiateDelete && (
+          {!isReviewMode && showDeleteButton && onInitiateDelete && (
             <Button
               variant="ghost"
               size="icon"
               onClick={handleDeleteClick}
-              className="text-destructive hover:bg-destructive/10 h-8 w-8 ml-2 shrink-0" // Added ml-2 and shrink-0
+              className="text-destructive hover:bg-destructive/10 h-8 w-8 ml-2 shrink-0"
               aria-label={`Remove ${player.name}`}
             >
               <Trash2 size={18} />
@@ -142,18 +150,18 @@ export function PlayerRow({
         <div className="text-sm">
           <p>AC: <span className="font-medium">{player.ac}</span></p>
           <p>Max HP: <span className="font-medium">{player.hp}</span></p>
-          {stage === 'COMBAT_ACTIVE' && (
+          { (stage === 'COMBAT_ACTIVE' || isReviewMode) && ( // Show current HP in review mode too
             <p>Current HP: <span className={`font-medium ${player.currentHp <= 0 ? 'text-destructive' : ''}`}>{player.currentHp}</span></p>
           )}
-          {(stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT') && (
+          {(stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || (isReviewMode && player.initiative !== undefined) ) && ( // Show initiative in review if set
              <p>Initiative: <span className="font-medium">{player.initiative}</span></p>
           )}
-           {(stage === 'PLAYER_SETUP') && (
+           {(stage === 'PLAYER_SETUP' && !isReviewMode) && ( // Don't show this specific HP if in review mode and combat active
              <p>HP: <span className="font-medium">{player.hp}</span></p>
           )}
         </div>
 
-        {stage === 'INITIATIVE_SETUP' && (
+        {!isReviewMode && stage === 'INITIATIVE_SETUP' && (
           <div className="md:col-span-2 flex items-center gap-2">
             <label htmlFor={`initiative-${player.id}`} className="text-sm whitespace-nowrap">Initiative:</label>
             <Input
@@ -164,12 +172,12 @@ export function PlayerRow({
               onBlur={handleInitiativeBlur}
               className="w-20 h-9 text-sm"
               aria-label={`Initiative for ${player.name}`}
-              disabled={isRosterEditing} // Disable initiative input if roster editing name, etc.
+              disabled={isRosterEditing}
             />
           </div>
         )}
 
-        {stage === 'COMBAT_ACTIVE' && (
+        {!isReviewMode && stage === 'COMBAT_ACTIVE' && (
           <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
             <form onSubmit={handleDamageSubmit} className="flex items-center gap-2">
               <Input
@@ -224,3 +232,4 @@ export function PlayerRow({
     </Card>
   );
 }
+

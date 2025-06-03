@@ -6,7 +6,7 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft, Pencil, XSquare, CheckCircle } from 'lucide-react';
+import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft, Pencil, XSquare, CheckCircle, Eye } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -253,8 +253,14 @@ export default function EncounterManager({
                 </div>
                 <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
                   {!isEncounterEditMode && (
-                    <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
-                      <PlayCircle className="mr-2" /> Continue
+                    <Button 
+                      onClick={() => onSelectEncounter(encounter.id)} 
+                      variant="outline" 
+                      size="sm" 
+                      className="border-primary text-primary hover:bg-primary/10"
+                    >
+                      {encounter.isFinished ? <Eye className="mr-2" /> : <PlayCircle className="mr-2" />}
+                      {encounter.isFinished ? 'Review' : 'Continue'}
                     </Button>
                   )}
                   {isEncounterEditMode && (
