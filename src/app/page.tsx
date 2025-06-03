@@ -95,17 +95,16 @@ export default function Home() {
   };
 
   const handleUpdateCampaign = (updatedCampaign: Campaign) => {
-    // Ensure the encounters within the updated campaign are sorted by lastModified
     const campaignWithSortedEncounters = {
       ...updatedCampaign,
       encounters: [...updatedCampaign.encounters].sort((a, b) => b.lastModified - a.lastModified),
-      lastModified: Date.now() // Re-stamp campaign's lastModified
+      lastModified: Date.now()
     };
 
     setCampaigns(prevCampaigns =>
       prevCampaigns.map(camp =>
         camp.id === campaignWithSortedEncounters.id ? campaignWithSortedEncounters : camp
-      ).sort((a, b) => b.lastModified - a.lastModified) // Sort all campaigns by lastModified
+      ).sort((a, b) => b.lastModified - a.lastModified)
     );
   };
 
@@ -132,12 +131,13 @@ export default function Home() {
 
   const handleSelectCampaign = (campaignId: string) => {
     setActiveCampaignId(campaignId);
-    setActiveEncounterId(null); // Reset active encounter when changing campaign
-    // Touch the campaign to update its lastModified when selected
-    const campaignToSelect = campaigns.find(c => c.id === campaignId);
-    if (campaignToSelect) {
-      handleUpdateCampaign({...campaignToSelect}); // This will update its lastModified and re-sort campaigns
-    }
+    setActiveEncounterId(null); 
+    
+    setCampaigns(prevCampaigns =>
+      prevCampaigns.map(camp =>
+        camp.id === campaignId ? { ...camp, lastModified: Date.now() } : camp
+      ).sort((a, b) => b.lastModified - a.lastModified)
+    );
   };
 
   const handleExitCampaign = () => {
@@ -147,12 +147,14 @@ export default function Home() {
 
   const handleSelectEncounter = (encounterId: string) => {
     setActiveEncounterId(encounterId);
-    // Touch the campaign to update its lastModified
+    // When an encounter is selected (either newly created or existing from a list),
+    // update its parent campaign's lastModified timestamp to bring it to the top of the sorted list.
     if (activeCampaignId) {
-        const campaign = campaigns.find(c => c.id === activeCampaignId);
-        if (campaign) {
-            handleUpdateCampaign({...campaign}); 
-        }
+      setCampaigns(prevCampaigns => 
+        prevCampaigns.map(camp => 
+          camp.id === activeCampaignId ? { ...camp, lastModified: Date.now() } : camp
+        ).sort((a, b) => b.lastModified - a.lastModified)
+      );
     }
   };
 
@@ -161,7 +163,12 @@ export default function Home() {
     if (activeCampaignId) {
         const campaign = campaigns.find(c => c.id === activeCampaignId);
         if (campaign) {
-            handleUpdateCampaign({...campaign}); 
+            // Touch the campaign to update its lastModified when exiting an encounter
+             setCampaigns(prevCampaigns => 
+              prevCampaigns.map(camp => 
+                camp.id === activeCampaignId ? { ...camp, lastModified: Date.now() } : camp
+              ).sort((a, b) => b.lastModified - a.lastModified)
+            );
         }
     }
   };
@@ -208,7 +215,7 @@ export default function Home() {
 
   return (
     <ActiveEncounter
-      key={activeEncounter.id} // Ensures component re-mounts if encounter ID changes
+      key={activeEncounter.id} 
       encounter={activeEncounter}
       campaign={activeCampaign}
       onCampaignUpdate={handleUpdateCampaign} 
