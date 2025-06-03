@@ -91,10 +91,10 @@ export default function ActiveEncounter({
     };
 
     let updatedPlayersList = [...players, newPlayer];
-    if (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') {
+    if (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP') {
       updatedPlayersList.sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
     }
-    // If stage is PLAYER_SETUP or INITIATIVE_SETUP, sorting will happen later or on confirm.
+    // If stage is PLAYER_SETUP, sorting will happen later or on confirm.
 
     updateEncounterInCampaign({ players: updatedPlayersList });
     
@@ -259,7 +259,7 @@ export default function ActiveEncounter({
               onInitiativeChange={handleInitiativeChange}
               onDamageApply={handleDamageApply} 
               onHealApply={handleHealApply}
-              showDeleteButton={showDeleteButtonOnRow && (stage !== 'COMBAT_ACTIVE' || p.currentHp > 0)}
+              showDeleteButton={showDeleteButtonOnRow}
               onInitiateDelete={handleInitiateDeletePlayer}
             />
           ))}
@@ -311,7 +311,6 @@ export default function ActiveEncounter({
             <Button onClick={() => {
                 updateEncounterInCampaign({stage: 'PLAYER_SETUP'});
                 if (!rosterEditMode) setRosterEditMode(true); 
-                 toast({ title: "Add Combatants", description: `Switched to player setup for "${encounterName}".` });
             }}>
                 Add Combatants
             </Button>
