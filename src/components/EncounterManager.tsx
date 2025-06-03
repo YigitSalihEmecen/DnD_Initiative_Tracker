@@ -6,7 +6,7 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft } from 'lucide-react';
+import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft, Pencil } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -38,8 +38,12 @@ export default function EncounterManager({
   onExitCampaign,
 }: EncounterManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [dialogEncounterName, setDialogEncounterName] = useState('');
-  const [dialogEncounterType, setDialogEncounterType] = useState<EncounterType>('local');
+  const [newEncounterName, setNewEncounterName] = useState('');
+  const [newEncounterType, setNewEncounterType] = useState<EncounterType>('local');
+  
+  const [editingEncounterId, setEditingEncounterId] = useState<string | null>(null);
+  const [dialogEncounterNameForEdit, setDialogEncounterNameForEdit] = useState('');
+
   const [activeTab, setActiveTab] = useState<EncounterType>('local');
   
   const { toast } = useToast();
@@ -50,13 +54,13 @@ export default function EncounterManager({
   }, []);
 
   const handleOpenCreateDialog = () => {
-    setDialogEncounterName('');
-    setDialogEncounterType('local');
+    setNewEncounterName('');
+    setNewEncounterType('local');
     setIsCreateDialogOpen(true);
   };
 
   const handleConfirmCreateEncounter = () => {
-    if (!dialogEncounterName.trim()) {
+    if (!newEncounterName.trim()) {
       toast({
         title: "Encounter Name Required",
         description: "Please enter a name for the new encounter.",
@@ -66,19 +70,19 @@ export default function EncounterManager({
     }
     const newEncounter: Encounter = {
       id: crypto.randomUUID(),
-      name: dialogEncounterName.trim() || `Encounter ${campaign.encounters.length + 1}`,
+      name: newEncounterName.trim() || `Encounter ${campaign.encounters.length + 1}`,
       players: [],
       stage: 'PLAYER_SETUP',
       lastModified: Date.now(),
-      type: dialogEncounterType,
+      type: newEncounterType,
     };
     const updatedEncounters = [newEncounter, ...campaign.encounters].sort((a,b) => b.lastModified - a.lastModified);
     onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
     
-    onSelectEncounter(newEncounter.id); // Auto-select new encounter
+    onSelectEncounter(newEncounter.id); 
     toast({
       title: "Encounter Created",
-      description: `"${dialogEncounterName}" (${dialogEncounterType}) in campaign "${campaign.name}" is ready. Continuing...`,
+      description: `"${newEncounterName}" (${newEncounterType}) in campaign "${campaign.name}" is ready. Continuing...`,
     });
     setIsCreateDialogOpen(false);
   };
@@ -107,6 +111,42 @@ export default function EncounterManager({
   const filteredEncounters = campaign.encounters.filter(
     (enc) => (enc.type || 'local') === activeTab
   );
+
+  const handleOpenEditEncounterDialog = (encounter: Encounter) => {
+    setEditingEncounterId(encounter.id);
+    setDialogEncounterNameForEdit(encounter.name);
+  };
+
+  const handleConfirmEditEncounterName = () => {
+    if (!editingEncounterId || !dialogEncounterNameForEdit.trim()) {
+      toast({
+        title: "Invalid Input",
+        description: "Encounter name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const encounterToUpdate = campaign.encounters.find(enc => enc.id === editingEncounterId);
+    if (encounterToUpdate) {
+      const updatedEncounter = { 
+        ...encounterToUpdate, 
+        name: dialogEncounterNameForEdit.trim(),
+        lastModified: Date.now() 
+      };
+      const updatedEncounters = campaign.encounters.map(enc => 
+        enc.id === editingEncounterId ? updatedEncounter : enc
+      ).sort((a,b) => b.lastModified - a.lastModified);
+      
+      onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
+      toast({
+        title: "Encounter Updated",
+        description: `Encounter name changed to "${updatedEncounter.name}".`,
+      });
+    }
+    setEditingEncounterId(null);
+    setDialogEncounterNameForEdit('');
+  };
+
 
   if (!isClient) {
      return (
@@ -140,6 +180,7 @@ export default function EncounterManager({
         </CardContent>
       </Card>
 
+      {/* Create Encounter Dialog */}
       <AlertDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -151,12 +192,12 @@ export default function EncounterManager({
           <div className="space-y-4 py-4">
             <Input
               placeholder="e.g., The Goblin Ambush"
-              value={dialogEncounterName}
-              onChange={(e) => setDialogEncounterName(e.target.value)}
+              value={newEncounterName}
+              onChange={(e) => setNewEncounterName(e.target.value)}
               aria-label="New Encounter Name"
               className="text-base p-3 h-12"
             />
-            <RadioGroup value={dialogEncounterType} onValueChange={(value: string) => setDialogEncounterType(value as EncounterType)}>
+            <RadioGroup value={newEncounterType} onValueChange={(value: string) => setNewEncounterType(value as EncounterType)}>
               <Label className="mb-2 block">Encounter Type:</Label>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="local" id="type-local" />
@@ -171,6 +212,31 @@ export default function EncounterManager({
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmCreateEncounter}>Create Encounter</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Edit Encounter Name Dialog */}
+      <AlertDialog open={!!editingEncounterId} onOpenChange={(isOpen) => { if (!isOpen) setEditingEncounterId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Encounter Name</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the new name for this encounter in "{campaign.name}".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="New encounter name"
+              value={dialogEncounterNameForEdit}
+              onChange={(e) => setDialogEncounterNameForEdit(e.target.value)}
+              aria-label="Edit Encounter Name"
+              className="text-base p-3 h-12"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEditingEncounterId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmEditEncounterName}>Save Name</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -193,7 +259,12 @@ export default function EncounterManager({
                 filteredEncounters.map((encounter) => (
                   <Card key={encounter.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-3 hover:shadow-md transition-shadow duration-200 mb-3">
                     <div className="flex-grow">
-                      <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
+                          <Pencil size={16} />
+                        </Button>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
                       </p>
@@ -240,7 +311,12 @@ export default function EncounterManager({
                 filteredEncounters.map((encounter) => (
                    <Card key={encounter.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-3 hover:shadow-md transition-shadow duration-200 mb-3">
                     <div className="flex-grow">
-                      <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
+                          <Pencil size={16} />
+                        </Button>
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
                       </p>
@@ -326,3 +402,5 @@ export default function EncounterManager({
     </div>
   );
 }
+
+    
