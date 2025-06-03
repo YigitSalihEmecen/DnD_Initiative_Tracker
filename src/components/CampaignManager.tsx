@@ -125,19 +125,9 @@ export default function CampaignManagerComponent({
         <p className="text-xl text-muted-foreground mt-2">Your D&amp;D Campaign & Encounter Command Center</p>
       </header>
       
-      <Card className="shadow-xl border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-3xl font-headline text-primary">
-            <FolderPlus size={32} /> Create New Campaign
-          </CardTitle>
-          <CardDescription className="text-base">Start a new saga. Click below to define your campaign.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
-            <FilePlus className="mr-2" /> Create New Campaign
-          </Button>
-        </CardContent>
-      </Card>
+      <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
+        <FilePlus className="mr-2" /> Create New Campaign
+      </Button>
 
       {/* Create Campaign Dialog */}
       <AlertDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
