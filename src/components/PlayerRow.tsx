@@ -6,7 +6,7 @@ import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, MinusCircle, Trash2 } from 'lucide-react';
+import { CheckCircle, MinusCircle, Skull, Trash2 } from 'lucide-react';
 
 interface PlayerRowProps {
   player: Player;
@@ -81,7 +81,12 @@ export function PlayerRow({
     >
       <CardHeader className="pb-2 pt-4 pr-4"> 
         <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-headline">{player.name}</CardTitle>
+          <CardTitle className="text-lg font-headline flex items-center">
+            {player.name}
+            {player.currentHp <= 0 && (
+              <Skull size={18} className="ml-2 text-destructive" aria-label="Downed" />
+            )}
+          </CardTitle>
           {showDeleteButton && onInitiateDelete && (
             <Button
               variant="ghost"
@@ -136,8 +141,9 @@ export function PlayerRow({
                 className="w-full sm:w-24 h-9 text-sm"
                 aria-label={`Damage for ${player.name}`}
                 min="1"
+                disabled={player.currentHp <= 0}
               />
-              {damageInput && (
+              {damageInput && player.currentHp > 0 && (
                 <Button type="submit" size="icon" className="rounded-full h-9 w-9 animate-fade-in" aria-label="Apply Damage">
                   <MinusCircle size={20} />
                 </Button>
