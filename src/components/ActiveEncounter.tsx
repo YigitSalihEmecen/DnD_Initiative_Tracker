@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react';
@@ -7,7 +8,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, ShieldAlert, Trash2 } from 'lucide-react';
+import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface ActiveEncounterProps {
   encounter: Encounter;
@@ -21,6 +32,9 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
   const [playerAC, setPlayerAC] = useState('');
   const [playerHP, setPlayerHP] = useState('');
   const { toast } = useToast();
+
+  const [rosterEditMode, setRosterEditMode] = useState(false);
+  const [playerPendingDeletion, setPlayerPendingDeletion] = useState<Player | null>(null);
 
   const { name: encounterName, players, stage } = encounter;
 
@@ -95,15 +109,48 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     setLastEditedPlayerId(playerId);
   };
 
-  const clearCurrentEncounterCombatants = () => {
-    if (confirm(`Are you sure you want to clear all combatants from "${encounterName}"? This action will reset its setup stage.`)) {
-        onEncounterUpdate({ ...encounter, players: [], stage: 'PLAYER_SETUP' });
-        setLastEditedPlayerId(null);
-        toast({
-        title: "Combatants Cleared",
-        description: `All combatants removed from "${encounterName}". Ready to re-add.`,
-        });
+  const handleToggleRosterEditMode = () => {
+    setRosterEditMode(prev => {
+      const newMode = !prev;
+      if (newMode) {
+        toast({ title: "Edit Roster Mode", description: "Click the trash icon on a combatant to remove them." });
+      } else {
+        toast({ title: "Edit Roster Mode Off", description: "Finished editing roster." });
+      }
+      return newMode;
+    });
+  };
+
+  const handleInitiateDeletePlayer = (player: Player) => {
+    setPlayerPendingDeletion(player);
+  };
+
+  const handleConfirmDeletePlayer = () => {
+    if (!playerPendingDeletion) return;
+
+    const playerId = playerPendingDeletion.id;
+    const playerName = playerPendingDeletion.name;
+    const updatedPlayers = players.filter(p => p.id !== playerId);
+    
+    let updatedStage = encounter.stage;
+    if (updatedPlayers.length === 0 && (stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE')) {
+      updatedStage = 'PLAYER_SETUP';
     }
+
+    onEncounterUpdate({ ...encounter, players: updatedPlayers, stage: updatedStage });
+    
+    toast({
+      title: "Combatant Removed",
+      description: `"${playerName}" has been removed from "${encounterName}".`,
+    });
+    setPlayerPendingDeletion(null);
+    if (updatedPlayers.length === 0) {
+      setRosterEditMode(false); // Exit edit mode if no players left
+    }
+  };
+
+  const handleCancelDeletePlayer = () => {
+    setPlayerPendingDeletion(null);
   };
   
   useEffect(() => {
@@ -114,6 +161,19 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
       return () => clearTimeout(timer);
     }
   }, [lastEditedPlayerId]);
+
+  // Disable roster edit mode if combat starts
+  useEffect(() => {
+    if (stage === 'COMBAT_ACTIVE' && rosterEditMode) {
+      setRosterEditMode(false);
+      toast({ title: "Edit Roster Mode Off", description: "Roster editing disabled during active combat." });
+    }
+  }, [stage, rosterEditMode]);
+
+
+  const canEditRoster = players.length > 0 && stage !== 'COMBAT_ACTIVE';
+  const showDeleteButtonOnRow = rosterEditMode && stage !== 'COMBAT_ACTIVE';
+
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
@@ -154,7 +214,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
         </Card>
       )}
 
-      {players.length > 0 && (stage === 'PLAYER_SETUP' || stage === 'INITIATIVE_SETUP') && (
+      {players.length > 0 && (stage === 'PLAYER_SETUP' || stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT') && (
         <div className="mb-8 animate-fade-in">
           <h2 className="text-xl font-headline font-semibold mb-3">Current Combatants:</h2>
           {players.map((p) => (
@@ -165,7 +225,9 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
               isHighlighted={false} 
               onInitiativeChange={handleInitiativeChange}
               onDamageApply={handleDamageApply} 
-              onHealApply={handleHealApply} 
+              onHealApply={handleHealApply}
+              showDeleteButton={showDeleteButtonOnRow}
+              onInitiateDelete={handleInitiateDeletePlayer}
             />
           ))}
         </div>
@@ -201,6 +263,8 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
               onInitiativeChange={handleInitiativeChange} 
               onDamageApply={handleDamageApply}
               onHealApply={handleHealApply}
+              showDeleteButton={showDeleteButtonOnRow && p.currentHp > 0} // Only allow deleting non-downed players in this mode if in pre-combat
+              onInitiateDelete={handleInitiateDeletePlayer}
             />
           ))}
         </div>
@@ -223,9 +287,10 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
           <Button onClick={onExitEncounter} variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Encounters List
           </Button>
-          {(stage !== 'PLAYER_SETUP' || players.length > 0) && (
-            <Button onClick={clearCurrentEncounterCombatants} variant="destructive" className="bg-destructive/90 hover:bg-destructive">
-              <Trash2 className="mr-2 h-4 w-4" /> Clear Combatants
+          {canEditRoster && (
+            <Button onClick={handleToggleRosterEditMode} variant="outline">
+              {rosterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
+              {rosterEditMode ? 'Done Editing Roster' : 'Edit Roster'}
             </Button>
           )}
       </div>
@@ -238,6 +303,26 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
             </Button>
         </div>
       )}
+
+      {playerPendingDeletion && (
+        <AlertDialog open={!!playerPendingDeletion} onOpenChange={(isOpen) => { if (!isOpen) handleCancelDeletePlayer(); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action will permanently remove "{playerPendingDeletion.name}" from the encounter. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel onClick={handleCancelDeletePlayer}>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmDeletePlayer} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">
+                Delete Combatant
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </div>
   );
 }
+
