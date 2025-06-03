@@ -159,10 +159,7 @@ export default function EncounterManager({
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-8 animate-fade-in font-code">
       <header className="mb-10 text-center">
-        <Button onClick={onExitCampaign} variant="outline" className="absolute top-4 left-4 md:top-8 md:left-8">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Campaigns
-        </Button>
-        <h1 className="text-4xl font-headline font-bold tracking-tight pt-12 md:pt-0">Campaign: {campaign.name}</h1>
+        <h1 className="text-4xl font-headline font-bold tracking-tight">Campaign: {campaign.name}</h1>
         <p className="text-xl text-muted-foreground mt-2">Manage Encounters for this Campaign</p>
       </header>
       
@@ -399,8 +396,11 @@ export default function EncounterManager({
             </CardContent>
         </Card>
        )}
+      <div className="mt-12 text-center">
+        <Button onClick={onExitCampaign} variant="outline">
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Campaigns
+        </Button>
+      </div>
     </div>
   );
 }
-
-    
