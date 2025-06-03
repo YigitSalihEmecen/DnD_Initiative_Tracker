@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, ArrowRight, ListOrdered, Play, ShieldAlert } from 'lucide-react';
+import { UserPlus, ArrowRight, ListOrdered, Play, ShieldAlert, FileSignature } from 'lucide-react';
 
 export default function EncounterTrackerPage() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -17,6 +18,7 @@ export default function EncounterTrackerPage() {
   const [playerName, setPlayerName] = useState('');
   const [playerAC, setPlayerAC] = useState('');
   const [playerHP, setPlayerHP] = useState('');
+  const [encounterName, setEncounterName] = useState('');
 
   const { toast } = useToast();
 
@@ -98,6 +100,7 @@ export default function EncounterTrackerPage() {
     setPlayers([]);
     setStage('PLAYER_SETUP');
     setLastEditedPlayerId(null);
+    setEncounterName('');
     toast({
       title: "Encounter Reset",
       description: "Ready to set up a new encounter.",
@@ -118,15 +121,27 @@ export default function EncounterTrackerPage() {
   return (
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code">
       <header className="mb-8 text-center">
-        <h1 className="text-4xl font-headline font-bold">EncounterFlow</h1>
+        <h1 className="text-4xl font-headline font-bold">
+          EncounterFlow{encounterName && `: ${encounterName}`}
+        </h1>
         <p className="text-muted-foreground">D&amp;D Initiative and Combat Tracker</p>
       </header>
 
       {stage === 'PLAYER_SETUP' && (
         <Card className="mb-8 shadow-lg animate-fade-in">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl font-headline"><UserPlus size={28}/> Add Combatants</CardTitle>
-            <CardDescription>Enter player or monster details to add them to the encounter.</CardDescription>
+            <CardTitle className="flex items-center gap-2 text-2xl font-headline">
+              <FileSignature size={28} aria-hidden="true" />
+              <Input
+                id="encounterName"
+                value={encounterName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setEncounterName(e.target.value)}
+                placeholder="Name Your Encounter"
+                className="flex-grow min-w-0 bg-transparent border-0 focus:ring-0 focus:outline-none text-2xl font-headline p-0 placeholder-muted-foreground"
+                aria-label="Encounter Name"
+              />
+            </CardTitle>
+            <CardDescription>Enter player or monster details to add them to the encounter below.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAddPlayer} className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 items-end">
@@ -143,7 +158,7 @@ export default function EncounterTrackerPage() {
                 <Input id="playerHP" type="number" value={playerHP} onChange={(e: ChangeEvent<HTMLInputElement>) => setPlayerHP(e.target.value)} placeholder="e.g., 75" required min="1"/>
               </div>
               <Button type="submit" className="w-full sm:w-auto md:self-end h-10">
-                <UserPlus className="mr-2 h-4 w-4" /> Add
+                <UserPlus className="mr-2 h-4 w-4" /> Add Combatant
               </Button>
             </form>
           </CardContent>
@@ -186,7 +201,7 @@ export default function EncounterTrackerPage() {
       {(stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') && (
          <div className="mb-8 animate-fade-in">
           <h2 className="text-xl font-headline font-semibold mb-3">
-            {stage === 'COMBAT_ACTIVE' ? 'Combat Active!' : 'Initiative Order:'}
+            {stage === 'COMBAT_ACTIVE' ? `Combat Active${encounterName ? `: ${encounterName}` : ''}!` : `Initiative Order${encounterName ? ` for ${encounterName}` : ''}:`}
           </h2>
           {players.map((p) => (
             <PlayerRow
@@ -204,7 +219,7 @@ export default function EncounterTrackerPage() {
       
       {stage === 'PRE_COMBAT' && (
         <div className="fixed bottom-6 right-6 animate-fade-in">
-          <Button onClick={() => {setStage('COMBAT_ACTIVE'); toast({title: "Encounter Started!", description: "May your dice roll true."});}} size="lg" className="rounded-full w-20 h-20 shadow-2xl text-lg">
+          <Button onClick={() => {setStage('COMBAT_ACTIVE'); toast({title: `Encounter Started${encounterName ? `: ${encounterName}` : ''}!`, description: "May your dice roll true."});}} size="lg" className="rounded-full w-20 h-20 shadow-2xl text-lg">
             <Play size={36}/>
           </Button>
         </div>
@@ -230,3 +245,5 @@ export default function EncounterTrackerPage() {
     </div>
   );
 }
+
+    
