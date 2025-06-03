@@ -113,9 +113,9 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     setRosterEditMode(prev => {
       const newMode = !prev;
       if (newMode) {
-        toast({ title: "Edit Roster Mode", description: "Click the trash icon on a combatant to remove them." });
+        toast({ title: "Edit Mode", description: "Click the trash icon on a combatant to remove them." });
       } else {
-        toast({ title: "Edit Roster Mode Off", description: "Finished editing roster." });
+        toast({ title: "Edit Mode Off", description: "Finished editing." });
       }
       return newMode;
     });
@@ -166,12 +166,12 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
   useEffect(() => {
     if (stage === 'COMBAT_ACTIVE' && rosterEditMode) {
       setRosterEditMode(false);
-      toast({ title: "Edit Roster Mode Off", description: "Roster editing disabled during active combat." });
+      toast({ title: "Edit Mode Off", description: "Roster editing disabled during active combat." });
     }
   }, [stage, rosterEditMode]);
 
 
-  const canEditRoster = stage !== 'COMBAT_ACTIVE'; // Changed condition here
+  const canEditRoster = stage !== 'COMBAT_ACTIVE'; 
   const showDeleteButtonOnRow = rosterEditMode && stage !== 'COMBAT_ACTIVE';
 
 
@@ -290,7 +290,7 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
           {canEditRoster && (
             <Button onClick={handleToggleRosterEditMode} variant="outline">
               {rosterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
-              {rosterEditMode ? 'Done Editing Roster' : 'Edit Roster'}
+              {rosterEditMode ? 'Done Editing' : 'Edit'}
             </Button>
           )}
       </div>
@@ -325,3 +325,4 @@ export default function ActiveEncounter({ encounter, onEncounterUpdate, onExitEn
     </div>
   );
 }
+
