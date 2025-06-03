@@ -55,7 +55,7 @@ export default function ActiveEncounter({
     onCampaignUpdate({ ...campaign, encounters: updatedEncountersInCampaign, lastModified: Date.now() });
   };
 
-  const showInitiativeInputFieldInAddForm = rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE');
+  const showInitiativeInputFieldInAddForm = rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP');
 
   const handleAddPlayer = (e: FormEvent) => {
     e.preventDefault();
@@ -235,7 +235,7 @@ export default function ActiveEncounter({
             <CardTitle className="flex items-center gap-2 text-2xl font-headline">
               <UserPlus size={28} aria-hidden="true" /> Add Combatants
             </CardTitle>
-            <CardDescription>Enter player or monster details to add them to "{encounterName}". {rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE') ? "Provide initiative for correct placement." : ""}</CardDescription>
+            <CardDescription>Enter player or monster details to add them to "{encounterName}". {rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP') ? "Provide initiative for correct placement." : ""}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleAddPlayer} className={`grid grid-cols-1 sm:grid-cols-2 ${formGridColsClass} gap-4 items-end`}>
@@ -313,7 +313,7 @@ export default function ActiveEncounter({
           <Button 
             onClick={() => {updateEncounterInCampaign({stage: 'COMBAT_ACTIVE'}); toast({title: `Encounter Started: ${encounterName}!`, description: "May your dice roll true."});}} 
             size="lg" 
-            className="rounded-full w-20 h-20 shadow-2xl text-lg"
+            className="rounded-xl w-20 h-20 shadow-2xl text-lg"
             disabled={players.length === 0}
           >
             <Play size={36}/>
