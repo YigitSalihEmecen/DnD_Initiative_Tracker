@@ -154,7 +154,7 @@ export default function EncounterManager({
 
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-8 animate-fade-in font-code">
-      <header className="mb-10 text-center pt-8 md:pt-0">
+      <header className="mb-10 text-center">
         <h1 className="text-4xl font-headline font-bold tracking-tight">Campaign: {campaign.name}</h1>
         <p className="text-xl text-muted-foreground mt-2">Manage Encounters for this Campaign</p>
       </header>
@@ -168,7 +168,7 @@ export default function EncounterManager({
         </CardHeader>
         <CardContent>
           <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
-            <Edit3 className="mr-2" /> Create New Encounter
+            <FilePlus className="mr-2" /> Create New Encounter
           </Button>
         </CardContent>
       </Card>
