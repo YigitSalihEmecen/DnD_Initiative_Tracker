@@ -6,7 +6,7 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft, Pencil } from 'lucide-react';
+import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft, Pencil, XSquare } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -45,6 +45,7 @@ export default function EncounterManager({
   const [dialogEncounterNameForEdit, setDialogEncounterNameForEdit] = useState('');
 
   const [activeTab, setActiveTab] = useState<EncounterType>('local');
+  const [isEncounterEditMode, setIsEncounterEditMode] = useState(false);
   
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
@@ -147,6 +148,10 @@ export default function EncounterManager({
     setDialogEncounterNameForEdit('');
   };
 
+  const handleToggleEncounterEditMode = () => {
+    setIsEncounterEditMode(prev => !prev);
+  };
+
 
   if (!isClient) {
      return (
@@ -159,7 +164,7 @@ export default function EncounterManager({
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-8 animate-fade-in font-code">
       <header className="mb-10 text-center">
-        <h1 className="text-4xl font-headline font-bold tracking-tight">Campaign: {campaign.name}</h1>
+        <h1 className="text-4xl font-headline font-bold tracking-tight pt-8 md:pt-0">Campaign: {campaign.name}</h1>
         <p className="text-xl text-muted-foreground mt-2">Manage Encounters for this Campaign</p>
       </header>
       
@@ -258,9 +263,11 @@ export default function EncounterManager({
                     <div className="flex-grow">
                       <div className="flex items-center gap-2">
                         <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
-                          <Pencil size={16} />
-                        </Button>
+                        {isEncounterEditMode && (
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
+                            <Pencil size={16} />
+                          </Button>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
@@ -273,29 +280,31 @@ export default function EncounterManager({
                       <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
                         <PlayCircle className="mr-2" /> Continue
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            aria-label={`Delete ${encounter.name}`}
-                          >
-                            <Trash2 className="mr-1.5" /> Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {isEncounterEditMode && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              aria-label={`Delete ${encounter.name}`}
+                            >
+                              <Trash2 className="mr-1.5" /> Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </Card>
                 ))
@@ -310,9 +319,11 @@ export default function EncounterManager({
                     <div className="flex-grow">
                       <div className="flex items-center gap-2">
                         <h3 className="text-xl font-semibold text-primary">{encounter.name}</h3>
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
-                          <Pencil size={16} />
-                        </Button>
+                        {isEncounterEditMode && (
+                          <Button variant="ghost" size="icon" onClick={() => handleOpenEditEncounterDialog(encounter)} className="h-7 w-7 text-muted-foreground hover:text-primary">
+                            <Pencil size={16} />
+                          </Button>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
@@ -325,29 +336,31 @@ export default function EncounterManager({
                       <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
                         <PlayCircle className="mr-2" /> Continue
                       </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            aria-label={`Delete ${encounter.name}`}
-                          >
-                            <Trash2 className="mr-1.5" /> Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                             This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      {isEncounterEditMode && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              aria-label={`Delete ${encounter.name}`}
+                            >
+                              <Trash2 className="mr-1.5" /> Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                               This action cannot be undone. This will permanently delete the "{encounter.name}" encounter from "{campaign.name}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteEncounter(encounter.id)}>Delete Encounter</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </Card>
                 ))
@@ -357,7 +370,7 @@ export default function EncounterManager({
             </TabsContent>
           </Tabs>
         </CardContent>
-        {campaign.encounters.length > 0 && (
+        {campaign.encounters.length > 0 && isEncounterEditMode && (
           <CardFooter className="p-4 border-t border-border">
              <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -396,11 +409,16 @@ export default function EncounterManager({
             </CardContent>
         </Card>
        )}
-      <div className="mt-12 text-center">
+      <div className="mt-12 text-center flex flex-col sm:flex-row justify-center items-center gap-4">
         <Button onClick={onExitCampaign} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Campaigns
+        </Button>
+        <Button onClick={handleToggleEncounterEditMode} variant="outline">
+          {isEncounterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
+          {isEncounterEditMode ? 'Done Editing' : 'Edit Encounters'}
         </Button>
       </div>
     </div>
   );
 }
+
