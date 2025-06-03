@@ -46,6 +46,8 @@ export default function ActiveEncounter({
 
 
   const { name: encounterName, players, stage, isFinished } = encounter;
+  const isReviewMode = !!isFinished;
+
 
   const updateEncounterInCampaign = (updatedEncounterData: Partial<Encounter>) => {
     const updatedEncounter = { ...encounter, ...updatedEncounterData, lastModified: Date.now() };
@@ -55,10 +57,14 @@ export default function ActiveEncounter({
     onCampaignUpdate({ ...campaign, encounters: updatedEncountersInCampaign, lastModified: Date.now() });
   };
 
-  const showInitiativeInputFieldInAddForm = rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP');
+  // Determine if initiative input is needed in add form based on current mode and stage (but not in review mode)
+  const showInitiativeInputFieldInAddForm = !isReviewMode && rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP');
+
 
   const handleAddPlayer = (e: FormEvent) => {
     e.preventDefault();
+    if (isReviewMode) return; // No adding players in review mode
+
     const ac = parseInt(playerAC, 10);
     const hp = parseInt(playerHP, 10);
     const initiativeVal = parseInt(playerInitiative, 10);
@@ -112,11 +118,13 @@ export default function ActiveEncounter({
   };
 
   const handleInitiativeChange = (playerId: string, initiative: number) => {
+    if (isReviewMode) return;
     const updatedPlayers = players.map((p) => (p.id === playerId ? { ...p, initiative } : p));
     updateEncounterInCampaign({ players: updatedPlayers });
   };
 
   const confirmInitiatives = () => {
+    if (isReviewMode) return;
     if (players.some(p => p.initiative === undefined || p.initiative === null || isNaN(p.initiative))) {
        toast({
         title: "Missing Initiatives",
@@ -134,6 +142,7 @@ export default function ActiveEncounter({
   };
 
   const handleDamageApply = (playerId: string, damage: number) => {
+    if (isReviewMode) return;
     const updatedPlayers = players.map((p) =>
       p.id === playerId ? { ...p, currentHp: Math.max(0, p.currentHp - damage) } : p
     );
@@ -142,6 +151,7 @@ export default function ActiveEncounter({
   };
   
   const handleHealApply = (playerId: string, heal: number) => {
+    if (isReviewMode) return;
     const updatedPlayers = players.map((p) =>
       p.id === playerId ? { ...p, currentHp: Math.min(p.currentHp + heal, p.hp) } : p
     );
@@ -150,15 +160,17 @@ export default function ActiveEncounter({
   };
 
   const handleToggleRosterEditMode = () => {
+    if (isReviewMode) return;
     setRosterEditMode(prev => !prev);
   };
 
   const handleInitiateDeletePlayer = (player: Player) => {
+    if (isReviewMode) return;
     setPlayerPendingDeletion(player);
   };
 
   const handleConfirmDeletePlayer = () => {
-    if (!playerPendingDeletion) return;
+    if (isReviewMode || !playerPendingDeletion) return;
 
     const playerId = playerPendingDeletion.id;
     const playerName = playerPendingDeletion.name;
@@ -186,6 +198,7 @@ export default function ActiveEncounter({
   };
   
   const handlePlayerNameChange = (playerId: string, newName: string) => {
+    if (isReviewMode) return;
     const updatedPlayers = players.map((p) =>
       p.id === playerId ? { ...p, name: newName } : p
     );
@@ -198,6 +211,7 @@ export default function ActiveEncounter({
   };
 
   const handleConfirmFinishEncounter = () => {
+    if (isReviewMode) return;
     updateEncounterInCampaign({ isFinished: true });
     toast({
       title: "Encounter Finished",
@@ -216,7 +230,7 @@ export default function ActiveEncounter({
     }
   }, [lastEditedPlayerId]);
 
-  const showDeleteButtonOnRow = rosterEditMode;
+  const showDeleteButtonOnRow = !isReviewMode && rosterEditMode;
   const formGridColsClass = showInitiativeInputFieldInAddForm ? "md:grid-cols-5" : "md:grid-cols-4";
 
 
@@ -224,12 +238,12 @@ export default function ActiveEncounter({
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
       <header className="mb-8 text-center">
         <h1 className="text-4xl font-headline font-bold">
-          {encounterName}
+          {encounterName} {isReviewMode && "(Finished)"}
         </h1>
         <p className="text-muted-foreground">Campaign: {campaign.name} &bull; D&amp;D Initiative and Combat Tracker</p>
       </header>
 
-      {(stage === 'PLAYER_SETUP' || rosterEditMode) && (
+      {!isReviewMode && (stage === 'PLAYER_SETUP' || rosterEditMode) && (
         <Card className="mb-8 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl font-headline">
@@ -265,13 +279,14 @@ export default function ActiveEncounter({
         </Card>
       )}
 
-      {players.length > 0 && (stage === 'PLAYER_SETUP' || stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || rosterEditMode || stage === 'COMBAT_ACTIVE') && (
+      {players.length > 0 && (
         <div className="mb-8 animate-fade-in">
           <h2 className="text-xl font-headline font-semibold mb-3">
-            {stage === 'COMBAT_ACTIVE' && !rosterEditMode ? 'Combat Active:' : 
+            {isReviewMode ? 'Final Combatant Roster:' :
+             stage === 'COMBAT_ACTIVE' && !rosterEditMode ? 'Combat Active:' : 
              stage === 'PRE_COMBAT' && !rosterEditMode ? 'Initiative Order:' : 
              'Current Combatants:'}
-             {rosterEditMode && ' (Editing Roster)'}
+             {!isReviewMode && rosterEditMode && ' (Editing Roster)'}
           </h2>
           {players.map((p) => (
             <PlayerRow
@@ -284,15 +299,16 @@ export default function ActiveEncounter({
               onHealApply={handleHealApply}
               showDeleteButton={showDeleteButtonOnRow}
               onInitiateDelete={handleInitiateDeletePlayer}
-              disableCombatActions={rosterEditMode} 
-              isRosterEditing={rosterEditMode}
+              disableCombatActions={rosterEditMode || isReviewMode} 
+              isRosterEditing={!isReviewMode && rosterEditMode}
               onNameChange={handlePlayerNameChange}
+              isReviewMode={isReviewMode}
             />
           ))}
         </div>
       )}
       
-      {stage === 'PLAYER_SETUP' && players.length > 0 && !rosterEditMode && (
+      {!isReviewMode && stage === 'PLAYER_SETUP' && players.length > 0 && !rosterEditMode && (
         <div className="text-center mb-8 animate-fade-in">
           <Button onClick={() => { updateEncounterInCampaign({ stage: 'INITIATIVE_SETUP' }); toast({title: "Set Initiatives", description: `Enter initiative scores for each combatant in "${encounterName}".`}); }} size="lg">
             Proceed to Initiative <ArrowRight className="ml-2 h-5 w-5" />
@@ -300,7 +316,7 @@ export default function ActiveEncounter({
         </div>
       )}
 
-      {stage === 'INITIATIVE_SETUP' && !rosterEditMode &&(
+      {!isReviewMode && stage === 'INITIATIVE_SETUP' && !rosterEditMode && (
         <div className="text-center mb-8 animate-fade-in">
           <Button onClick={confirmInitiatives} size="lg" disabled={players.length === 0}>
             <ListOrdered className="mr-2 h-5 w-5" /> Confirm Initiatives & Order
@@ -308,7 +324,7 @@ export default function ActiveEncounter({
         </div>
       )}
       
-      {stage === 'PRE_COMBAT' && !rosterEditMode && (
+      {!isReviewMode && stage === 'PRE_COMBAT' && !rosterEditMode && (
          <div className="text-center my-8 animate-fade-in">
           <Button 
             onClick={() => {updateEncounterInCampaign({stage: 'COMBAT_ACTIVE'}); toast({title: `Encounter Started: ${encounterName}!`, description: "May your dice roll true."});}} 
@@ -325,18 +341,20 @@ export default function ActiveEncounter({
           <Button onClick={onExitEncounter} variant="outline">
             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Encounters List
           </Button>
-          <Button onClick={handleToggleRosterEditMode} variant="outline">
-            {rosterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
-            {rosterEditMode ? 'Done Editing' : 'Edit Roster'}
-          </Button>
-          {stage === 'COMBAT_ACTIVE' && !isFinished && !rosterEditMode && (
+          {!isReviewMode && (
+            <Button onClick={handleToggleRosterEditMode} variant="outline">
+              {rosterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
+              {rosterEditMode ? 'Done Editing' : 'Edit Roster'}
+            </Button>
+          )}
+          {!isReviewMode && stage === 'COMBAT_ACTIVE' && !rosterEditMode && (
             <Button onClick={() => setIsFinishConfirmOpen(true)} variant="default">
               <CheckSquare className="mr-2 h-4 w-4" /> Finish Encounter
             </Button>
           )}
       </div>
 
-      {players.length === 0 && stage !== 'PLAYER_SETUP' && !rosterEditMode &&(
+      {!isReviewMode && players.length === 0 && stage !== 'PLAYER_SETUP' && !rosterEditMode && (
         <div className="text-center py-10">
             <p className="text-muted-foreground mb-4">No combatants added to "{encounterName}" yet.</p>
             <Button onClick={() => {
@@ -348,7 +366,7 @@ export default function ActiveEncounter({
         </div>
       )}
 
-      {playerPendingDeletion && (
+      {playerPendingDeletion && !isReviewMode && (
         <AlertDialog open={!!playerPendingDeletion} onOpenChange={(isOpen) => { if (!isOpen) handleCancelDeletePlayer(); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -367,7 +385,7 @@ export default function ActiveEncounter({
         </AlertDialog>
       )}
 
-      {isFinishConfirmOpen && (
+      {isFinishConfirmOpen && !isReviewMode && (
         <AlertDialog open={isFinishConfirmOpen} onOpenChange={setIsFinishConfirmOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
