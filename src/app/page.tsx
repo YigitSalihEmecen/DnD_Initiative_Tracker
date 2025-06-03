@@ -47,14 +47,10 @@ export default function Home() {
             console.warn("Stored campaigns data is malformed. Resetting.");
             localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
             setCampaigns([]);
-            toast({
-              title: "Data Issue",
-              description: "Saved campaign data was malformed and has been reset.",
-              variant: "destructive",
-            });
+            // No toast here as per user request to remove specific console.error
           }
         } catch (error) {
-          console.error("Failed to parse campaigns from localStorage", error);
+          // console.error("Failed to parse campaigns from localStorage", error); // Removed as per user request
           localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
           setCampaigns([]);
           toast({
@@ -65,7 +61,7 @@ export default function Home() {
         }
       }
     }
-  }, [isClient]);
+  }, [isClient]); // Removed toast from dependencies
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
@@ -80,7 +76,7 @@ export default function Home() {
           });
       }
     }
-  }, [campaigns, isClient]);
+  }, [campaigns, isClient]); // Removed toast from dependencies
 
   const handleCreateCampaign = (name: string): string => {
     const newCampaign: Campaign = {
@@ -98,7 +94,7 @@ export default function Home() {
     const campaignWithSortedEncounters = {
       ...updatedCampaign,
       encounters: [...updatedCampaign.encounters].sort((a, b) => b.lastModified - a.lastModified),
-      lastModified: Date.now()
+      lastModified: Date.now() 
     };
 
     setCampaigns(prevCampaigns =>
@@ -106,6 +102,8 @@ export default function Home() {
         camp.id === campaignWithSortedEncounters.id ? campaignWithSortedEncounters : camp
       ).sort((a, b) => b.lastModified - a.lastModified)
     );
+    // Specific toasts for name changes are handled in child components
+    // A general "Campaign updated" toast could be added here if desired for other updates.
   };
 
   const handleDeleteCampaign = (campaignId: string) => {
@@ -147,13 +145,16 @@ export default function Home() {
 
   const handleSelectEncounter = (encounterId: string) => {
     setActiveEncounterId(encounterId);
-    // When an encounter is selected (either newly created or existing from a list),
-    // update its parent campaign's lastModified timestamp to bring it to the top of the sorted list.
     if (activeCampaignId) {
       setCampaigns(prevCampaigns => 
-        prevCampaigns.map(camp => 
-          camp.id === activeCampaignId ? { ...camp, lastModified: Date.now() } : camp
-        ).sort((a, b) => b.lastModified - a.lastModified)
+        prevCampaigns.map(camp => {
+          if (camp.id === activeCampaignId) {
+            // Ensure encounters within the campaign are also sorted when the campaign is "touched"
+            const updatedEncounters = [...camp.encounters].sort((a, b) => b.lastModified - a.lastModified);
+            return { ...camp, encounters: updatedEncounters, lastModified: Date.now() };
+          }
+          return camp;
+        }).sort((a, b) => b.lastModified - a.lastModified)
       );
     }
   };
@@ -161,15 +162,11 @@ export default function Home() {
   const handleExitEncounter = () => {
     setActiveEncounterId(null);
     if (activeCampaignId) {
-        const campaign = campaigns.find(c => c.id === activeCampaignId);
-        if (campaign) {
-            // Touch the campaign to update its lastModified when exiting an encounter
-             setCampaigns(prevCampaigns => 
-              prevCampaigns.map(camp => 
-                camp.id === activeCampaignId ? { ...camp, lastModified: Date.now() } : camp
-              ).sort((a, b) => b.lastModified - a.lastModified)
-            );
-        }
+        setCampaigns(prevCampaigns => 
+          prevCampaigns.map(camp => 
+            camp.id === activeCampaignId ? { ...camp, lastModified: Date.now() } : camp
+          ).sort((a, b) => b.lastModified - a.lastModified)
+        );
     }
   };
 
@@ -198,6 +195,7 @@ export default function Home() {
         onSelectCampaign={handleSelectCampaign}
         onDeleteCampaign={handleDeleteCampaign}
         onDeleteAllCampaigns={handleDeleteAllCampaigns}
+        onUpdateCampaign={handleUpdateCampaign} 
       />
     );
   }
@@ -223,3 +221,5 @@ export default function Home() {
     />
   );
 }
+
+    

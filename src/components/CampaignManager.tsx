@@ -6,7 +6,7 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban } from 'lucide-react';
+import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -27,6 +27,7 @@ interface CampaignManagerProps {
   onSelectCampaign: (id: string) => void;
   onDeleteCampaign: (id: string) => void;
   onDeleteAllCampaigns: () => void;
+  onUpdateCampaign: (updatedCampaign: Campaign) => void; // For name edits
 }
 
 export default function CampaignManagerComponent({
@@ -35,9 +36,14 @@ export default function CampaignManagerComponent({
   onSelectCampaign,
   onDeleteCampaign,
   onDeleteAllCampaigns,
+  onUpdateCampaign,
 }: CampaignManagerProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [dialogCampaignName, setDialogCampaignName] = useState('');
+  const [newCampaignName, setNewCampaignName] = useState('');
+  
+  const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
+  const [dialogCampaignNameForEdit, setDialogCampaignNameForEdit] = useState('');
+
   const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
@@ -46,12 +52,12 @@ export default function CampaignManagerComponent({
   }, []);
 
   const handleOpenCreateDialog = () => {
-    setDialogCampaignName('');
+    setNewCampaignName('');
     setIsCreateDialogOpen(true);
   };
 
   const handleConfirmCreateCampaign = () => {
-    if (!dialogCampaignName.trim()) {
+    if (!newCampaignName.trim()) {
       toast({
         title: "Campaign Name Required",
         description: "Please enter a name for the new campaign.",
@@ -59,13 +65,43 @@ export default function CampaignManagerComponent({
       });
       return;
     }
-    const newId = onCreateCampaign(dialogCampaignName);
-    // onSelectCampaign(newId); // Optionally auto-select, or let user click
+    const newId = onCreateCampaign(newCampaignName);
     toast({
       title: "Campaign Created",
-      description: `"${dialogCampaignName}" is ready. Select it to add encounters.`,
+      description: `"${newCampaignName}" is ready. Select it to add encounters.`,
     });
     setIsCreateDialogOpen(false);
+  };
+
+  const handleOpenEditDialog = (campaign: Campaign) => {
+    setEditingCampaignId(campaign.id);
+    setDialogCampaignNameForEdit(campaign.name);
+  };
+
+  const handleConfirmEditCampaignName = () => {
+    if (!editingCampaignId || !dialogCampaignNameForEdit.trim()) {
+      toast({
+        title: "Invalid Input",
+        description: "Campaign name cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const campaignToUpdate = campaigns.find(c => c.id === editingCampaignId);
+    if (campaignToUpdate) {
+      const updatedCampaign = { 
+        ...campaignToUpdate, 
+        name: dialogCampaignNameForEdit.trim(),
+        lastModified: Date.now()
+      };
+      onUpdateCampaign(updatedCampaign);
+      toast({
+        title: "Campaign Updated",
+        description: `Campaign name changed to "${updatedCampaign.name}".`,
+      });
+    }
+    setEditingCampaignId(null);
+    setDialogCampaignNameForEdit('');
   };
 
   if (!isClient) {
@@ -97,6 +133,7 @@ export default function CampaignManagerComponent({
         </CardContent>
       </Card>
 
+      {/* Create Campaign Dialog */}
       <AlertDialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -108,8 +145,8 @@ export default function CampaignManagerComponent({
           <div className="space-y-4 py-4">
             <Input
               placeholder="e.g., The Dragon's Hoard"
-              value={dialogCampaignName}
-              onChange={(e) => setDialogCampaignName(e.target.value)}
+              value={newCampaignName}
+              onChange={(e) => setNewCampaignName(e.target.value)}
               aria-label="New Campaign Name"
               className="text-base p-3 h-12"
             />
@@ -120,6 +157,32 @@ export default function CampaignManagerComponent({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Campaign Name Dialog */}
+      <AlertDialog open={!!editingCampaignId} onOpenChange={(isOpen) => { if (!isOpen) setEditingCampaignId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Edit Campaign Name</AlertDialogTitle>
+            <AlertDialogDescription>
+              Enter the new name for this campaign.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-4 py-4">
+            <Input
+              placeholder="New campaign name"
+              value={dialogCampaignNameForEdit}
+              onChange={(e) => setDialogCampaignNameForEdit(e.target.value)}
+              aria-label="Edit Campaign Name"
+              className="text-base p-3 h-12"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setEditingCampaignId(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmEditCampaignName}>Save Name</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       <Card className="shadow-lg">
         <CardHeader>
@@ -133,7 +196,12 @@ export default function CampaignManagerComponent({
             campaigns.map((campaign) => (
               <Card key={campaign.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-3 hover:shadow-md transition-shadow duration-200 mb-3">
                 <div className="flex-grow">
-                  <h3 className="text-xl font-semibold text-primary">{campaign.name}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-semibold text-primary">{campaign.name}</h3>
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(campaign)} className="h-7 w-7 text-muted-foreground hover:text-primary">
+                      <Pencil size={16} />
+                    </Button>
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {campaign.encounters.length} encounter{campaign.encounters.length === 1 ? '' : 's'}
                   </p>
@@ -206,3 +274,5 @@ export default function CampaignManagerComponent({
     </div>
   );
 }
+
+    
