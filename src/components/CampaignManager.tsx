@@ -6,7 +6,7 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil, XSquare } from 'lucide-react';
+import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil, XSquare, FilePlus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -134,7 +134,7 @@ export default function CampaignManagerComponent({
         </CardHeader>
         <CardContent>
           <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
-            <Edit3 className="mr-2" /> Create New Campaign
+            <FilePlus className="mr-2" /> Create New Campaign
           </Button>
         </CardContent>
       </Card>
