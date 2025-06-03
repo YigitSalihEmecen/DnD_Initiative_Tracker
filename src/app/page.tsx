@@ -31,7 +31,7 @@ export default function Home() {
             console.warn("Stored encounters data is malformed. Resetting.");
             localStorage.removeItem(LOCAL_STORAGE_KEY); 
             setEncounters([]);
-            toast({ // Toasting here is okay as it's a one-time load issue.
+            toast({ 
               title: "Data Issue",
               description: "Saved encounters were malformed and have been reset.",
               variant: "destructive",
@@ -49,7 +49,7 @@ export default function Home() {
         }
       }
     }
-  }, [isClient]); // Removed `toast` from dependency array
+  }, [isClient]);
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
@@ -57,11 +57,9 @@ export default function Home() {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(encounters));
       } catch (error) {
         console.error("Failed to save encounters to localStorage", error);
-        // Avoid toast here as it can spam if saving frequently fails or if component re-renders often
-        // Consider a more robust error reporting mechanism if this becomes frequent
       }
     }
-  }, [encounters, isClient]); // Removed `toast` from dependency array
+  }, [encounters, isClient]);
 
   const handleCreateEncounter = (name: string): string => {
     const newEncounter: Encounter = {
@@ -105,13 +103,21 @@ export default function Home() {
         description: `"${encounterToDelete.name}" has been removed.`,
       });
     } catch (error) {
-      console.error("Error during encounter deletion:", error);
       toast({
         title: "Deletion Error",
         description: "An unexpected error occurred while deleting the encounter.",
         variant: "destructive",
       });
     }
+  };
+
+  const handleDeleteAllEncounters = () => {
+    setEncounters([]); 
+    setActiveEncounterId(null); 
+     toast({
+        title: "All Encounters Deleted",
+        description: "All saved encounters have been removed.",
+      });
   };
 
   const handleSelectEncounter = (encounterId: string) => {
@@ -147,6 +153,7 @@ export default function Home() {
           onCreateEncounter={handleCreateEncounter}
           onSelectEncounter={handleSelectEncounter}
           onDeleteEncounter={handleDeleteEncounter}
+          onDeleteAllEncounters={handleDeleteAllEncounters} 
         />
       ) : (
         <ActiveEncounter

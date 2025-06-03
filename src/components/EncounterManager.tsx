@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Encounter } from '@/types';
@@ -9,12 +8,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface EncounterManagerProps {
   encounters: Encounter[];
   onCreateEncounter: (name: string) => string; // Returns new encounter ID
   onSelectEncounter: (id: string) => void;
   onDeleteEncounter: (id: string) => void;
+  onDeleteAllEncounters: () => void; // Added new prop for deleting all encounters
 }
 
 export default function EncounterManager({
@@ -22,15 +33,15 @@ export default function EncounterManager({
   onCreateEncounter,
   onSelectEncounter,
   onDeleteEncounter,
+  onDeleteAllEncounters, // Destructure the new prop
 }: EncounterManagerProps) {
   const [newEncounterName, setNewEncounterName] = useState('');
-  const { toast } = useToast(); // Still used for create encounter feedback
+  const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
 
   const handleCreateSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -42,18 +53,18 @@ export default function EncounterManager({
       });
       return;
     }
-    const newId = onCreateEncounter(newEncounterName); // Create first
-    onSelectEncounter(newId); // Then select (which also triggers a toast if needed)
-    toast({ // This toast is for user feedback that creation was successful before navigating
+    const newId = onCreateEncounter(newEncounterName);
+    onSelectEncounter(newId);
+    toast({
       title: "Encounter Created",
       description: `"${newEncounterName}" is ready for setup. Continuing to encounter...`,
     });
     setNewEncounterName('');
   };
   
-  const getStageDisplay = (stage?: string) => { // Made stage optional for safety
+  const getStageDisplay = (stage?: string) => {
     if (!stage) return 'Unknown Stage';
-    return stage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return stage.replace(/_/g, ' ').replace(/\w/g, l => l.toUpperCase());
   }
 
   if (!isClient) {
@@ -119,23 +130,59 @@ export default function EncounterManager({
                   <Button onClick={() => onSelectEncounter(encounter.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
                     <PlayCircle className="mr-2" /> Continue
                   </Button>
-                  <Button
-                    onClick={() => {
-                      if (window.confirm(`Are you sure you want to delete "${encounter.name}"? This cannot be undone.`)) {
-                        onDeleteEncounter(encounter.id); 
-                        // Toast for delete confirmation is now handled in page.tsx's handleDeleteEncounter
-                      }
-                    }}
-                    variant="destructive"
-                    size="sm"
-                    aria-label={`Delete ${encounter.name}`}
-                  >
-                    <Trash2 className="mr-1.5" /> Delete
-                  </Button>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        aria-label={`Delete ${encounter.name}`}
+                      >
+                        <Trash2 className="mr-1.5" /> Delete
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure you want to delete this encounter?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action cannot be undone. This will permanently delete the "{encounter.name}" encounter.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDeleteEncounter(encounter.id)}>Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </Card>
             ))}
           </CardContent>
+          <div className="p-4 border-t border-border">
+             <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-destructive border-destructive hover:bg-destructive/10"
+                  >
+                    Delete All Encounters
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete ALL of your saved encounters.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={onDeleteAllEncounters}>Continue</AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+          </div>
         </Card>
       )}
        {encounters.length === 0 && (
