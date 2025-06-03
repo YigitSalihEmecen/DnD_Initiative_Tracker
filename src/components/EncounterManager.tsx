@@ -235,8 +235,12 @@ export default function EncounterManager({
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull; Stage: {getStageDisplay(encounter.stage)}
-                    {encounter.isFinished && <Badge variant="outline" className="ml-2 border-green-600 text-green-600 bg-green-500/10">Finished</Badge>}
+                    {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull;{' '}
+                    {encounter.isFinished ? (
+                      <Badge variant="outline" className="border-green-600 text-green-600 bg-green-500/10">Finished</Badge>
+                    ) : (
+                      <>Stage: {getStageDisplay(encounter.stage)}</>
+                    )}
                   </p>
                    {encounter.createdDate && (
                     <p className="text-xs text-muted-foreground mt-1">
