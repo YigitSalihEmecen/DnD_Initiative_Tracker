@@ -153,7 +153,19 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
       console.log('Selecting type:', selectedType);
       console.log('All monsters count:', allMonsters.length);
       
+      // Safety check - ensure we have monsters loaded
+      if (!allMonsters || allMonsters.length === 0) {
+        console.error('No monsters loaded yet, cannot filter by type');
+        return;
+      }
+      
       const monstersOfType = allMonsters.filter(monster => {
+        // Additional safety check for individual monster
+        if (!monster) {
+          console.warn('Found null/undefined monster in array');
+          return false;
+        }
+        
         // Use same type extraction logic as in loadAllMonsters
         let monsterType: string;
         
@@ -182,6 +194,7 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
       onSelectType(selectedType, monstersOfType);
     } catch (error) {
       console.error('Error in handleSelectType:', error);
+      // Don't proceed if there's an error
     }
   };
 
