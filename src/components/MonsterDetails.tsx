@@ -61,13 +61,20 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
   };
 
   const formatAbilityMod = (score?: number): string => {
-    if (score === undefined) return '?';
+    if (!score) return '+0';
     const mod = Math.floor((score - 10) / 2);
     return mod >= 0 ? `+${mod}` : `${mod}`;
   };
 
-  const getCRColor = (cr: string): string => {
-    const crNum = parseFloat(cr);
+  const formatCR = (cr: string | { cr: string; lair?: string }): string => {
+    if (typeof cr === 'string') return cr;
+    if (typeof cr === 'object' && cr.cr) return cr.cr;
+    return '?';
+  };
+
+  const getCRColor = (cr: string | { cr: string; lair?: string }): string => {
+    const crString = formatCR(cr);
+    const crNum = parseFloat(crString);
     if (crNum === 0) return 'bg-gray-100 text-gray-800';
     if (crNum <= 0.5) return 'bg-green-100 text-green-800';
     if (crNum <= 2) return 'bg-blue-100 text-blue-800';
@@ -120,7 +127,7 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
                 </p>
               </div>
               <Badge className={`${getCRColor(monster.cr)} border-0 text-base px-3 py-1`}>
-                CR {monster.cr}
+                CR {formatCR(monster.cr)}
               </Badge>
             </div>
           </CardHeader>
