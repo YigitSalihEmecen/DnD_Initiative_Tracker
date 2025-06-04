@@ -1,12 +1,10 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Campaign, Encounter, Player, AppStage } from '@/types';
+import type { Campaign } from '@/types';
 import CampaignManagerComponent from '@/components/CampaignManager';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
-import { useToast } from "@/hooks/use-toast";
 
 const LOCAL_STORAGE_KEY_CAMPAIGNS = 'encounterFlowApp_campaigns_v2';
 
@@ -15,7 +13,6 @@ export default function Home() {
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     setIsClient(true);
@@ -33,16 +30,15 @@ export default function Home() {
               ...enc,
               lastModified: enc.lastModified || Date.now(),
               createdDate: enc.createdDate || enc.lastModified || Date.now(),
-              isFinished: enc.isFinished || false, // Default isFinished to false
-            })).sort((a: Encounter, b: Encounter) => b.lastModified - a.lastModified)
+              isFinished: enc.isFinished || false,
+            })).sort((a: any, b: any) => b.lastModified - a.lastModified)
           }));
 
           if (Array.isArray(parsedCampaigns) && parsedCampaigns.every(camp =>
               typeof camp.id === 'string' &&
               typeof camp.name === 'string' &&
               typeof camp.lastModified === 'number' &&
-              Array.isArray(camp.encounters) &&
-              camp.encounters.every((enc: Encounter) => typeof enc.createdDate === 'number')
+              Array.isArray(camp.encounters)
             )) {
             setCampaigns(parsedCampaigns.sort((a,b) => b.lastModified - a.lastModified));
           } else {
@@ -53,15 +49,10 @@ export default function Home() {
         } catch (error) {
           localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
           setCampaigns([]);
-          toast({
-            title: "Error Loading Data",
-            description: "Could not load saved campaigns. Please try refreshing.",
-            variant: "destructive",
-          });
         }
       }
     }
-  }, [isClient, toast]);
+  }, [isClient]);
 
   useEffect(() => {
     if (isClient && typeof window !== 'undefined') {
@@ -69,14 +60,9 @@ export default function Home() {
         localStorage.setItem(LOCAL_STORAGE_KEY_CAMPAIGNS, JSON.stringify(campaigns));
       } catch (error) {
         console.error("Failed to save campaigns to localStorage", error);
-         toast({
-            title: "Error Saving Data",
-            description: "Could not save campaigns. Changes might not persist.",
-            variant: "destructive",
-          });
       }
     }
-  }, [campaigns, isClient, toast]);
+  }, [campaigns, isClient]);
 
   const handleCreateCampaign = (name: string): string => {
     const newCampaign: Campaign = {
@@ -86,7 +72,6 @@ export default function Home() {
       lastModified: Date.now(),
     };
     setCampaigns(prev => [newCampaign, ...prev].sort((a,b) => b.lastModified - a.lastModified));
-    toast({ title: "Campaign Created", description: `"${newCampaign.name}" is ready.` });
     return newCampaign.id;
   };
 
@@ -107,22 +92,20 @@ export default function Home() {
   const handleDeleteCampaign = (campaignId: string) => {
     const campaignToDelete = campaigns.find(c => c.id === campaignId);
     if (!campaignToDelete) {
-      toast({ title: "Deletion Failed", description: "Campaign not found.", variant: "destructive" });
       return;
     }
+
     setCampaigns(prev => prev.filter(camp => camp.id !== campaignId));
     if (activeCampaignId === campaignId) {
       setActiveCampaignId(null);
       setActiveEncounterId(null);
     }
-    toast({ title: "Campaign Deleted", description: `"${campaignToDelete.name}" has been removed.` });
   };
   
   const handleDeleteAllCampaigns = () => {
     setCampaigns([]);
     setActiveCampaignId(null);
     setActiveEncounterId(null);
-    toast({ title: "All Campaigns Deleted", description: "All saved campaigns have been removed." });
   };
 
   const handleSelectCampaign = (campaignId: string) => {

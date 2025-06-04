@@ -1,11 +1,10 @@
-
 export interface Player {
   id: string;
   name: string;
   ac: number;
   hp: number;
-  initiative: number;
   currentHp: number;
+  initiative: number;
 }
 
 export type AppStage =
@@ -19,9 +18,9 @@ export interface Encounter {
   name: string;
   players: Player[];
   stage: AppStage;
-  lastModified: number;
   createdDate: number;
-  isFinished?: boolean; // Added this field
+  lastModified: number;
+  isFinished: boolean;
 }
 
 export interface Campaign {
@@ -29,5 +28,30 @@ export interface Campaign {
   name: string;
   encounters: Encounter[];
   lastModified: number;
+}
+
+export interface Monster {
+  name: string;
+  source: string;
+  size: string[];
+  type: string | { type: string; tags?: string[] };
+  alignment: string[];
+  ac: number | number[] | { ac: number; from: string[] }[];
+  hp: { average: number; formula: string };
+  speed?: { [key: string]: number };
+  str?: number;
+  dex?: number;
+  con?: number;
+  int?: number;
+  wis?: number;
+  cha?: number;
+  cr: string;
+  passive?: number;
+  languages?: string[];
+  skill?: { [key: string]: string };
+  save?: { [key: string]: string };
+  trait?: Array<{ name: string; entries: string[] }>;
+  action?: Array<{ name: string; entries: string[] }>;
+  environment?: string[];
 }
 
