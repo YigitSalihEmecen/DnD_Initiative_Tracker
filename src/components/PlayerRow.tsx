@@ -1,13 +1,13 @@
-
 'use client';
 
 import type { Player, AppStage } from '@/types';
-import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react';
+import { useState, type ChangeEvent, type FormEvent, useEffect, type KeyboardEvent } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, MinusCircle, Skull, Trash2 } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
+import { Badge } from '@/components/ui/badge';
+import { getStageBadgeClass } from '@/lib/ui-utils';
 
 interface PlayerRowProps {
   player: Player;
@@ -53,8 +53,14 @@ export function PlayerRow({
   const [acInput, setAcInput] = useState(player.ac.toString());
   const [maxHpInput, setMaxHpInput] = useState(player.hp.toString());
   const [currentHpInput, setCurrentHpInput] = useState(player.currentHp.toString());
-
-  const { toast } = useToast();
+  const [editingName, setEditingName] = useState(player.name);
+  const [editingAc, setEditingAc] = useState(player.ac.toString());
+  const [editingMaxHp, setEditingMaxHp] = useState(player.hp.toString());
+  const [editingCurrentHp, setEditingCurrentHp] = useState(player.currentHp.toString());
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [isEditingAc, setIsEditingAc] = useState(false);
+  const [isEditingMaxHp, setIsEditingMaxHp] = useState(false);
+  const [isEditingCurrentHp, setIsEditingCurrentHp] = useState(false);
 
   useEffect(() => {
     setInitiativeInput(
@@ -114,70 +120,108 @@ export function PlayerRow({
     onInitiateDelete(player);
   };
 
-  const handleNameInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (isReviewMode) return;
-    setNameInput(e.target.value);
+  const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newName = e.target.value;
+    setEditingName(newName);
   };
 
-  const handleNameInputBlur = () => {
-    if (isReviewMode) return;
-    if (nameInput.trim() === '') {
-      setNameInput(player.name); 
-      toast({ title: "Name Cannot Be Empty", description: "Reverted to the original name.", variant: "destructive" });
-    } else if (onNameChange && nameInput.trim() !== player.name) {
-      onNameChange(player.id, nameInput.trim());
+  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleNameBlur();
+    } else if (e.key === 'Escape') {
+      setEditingName(player.name);
+      setIsEditingName(false);
     }
   };
 
-  const handleAcInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (isReviewMode) return;
-    setAcInput(e.target.value);
+  const handleNameBlur = () => {
+    if (editingName.trim() === '') {
+      setEditingName(player.name);
+      setIsEditingName(false);
+      return;
+    }
+    onNameChange(player.id, editingName.trim());
+    setIsEditingName(false);
   };
 
-  const handleAcInputBlur = () => {
-    if (isReviewMode || !onAcChange) return;
-    const newAc = parseInt(acInput, 10);
-    if (isNaN(newAc) || newAc < 0) {
-      setAcInput(player.ac.toString());
-      toast({ title: "Invalid AC", description: "AC must be a non-negative number. Reverted.", variant: "destructive" });
-    } else if (newAc !== player.ac) {
-      onAcChange(player.id, newAc);
+  const handleAcChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newAc = e.target.value;
+    setEditingAc(newAc);
+  };
+
+  const handleAcKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleAcBlur();
+    } else if (e.key === 'Escape') {
+      setEditingAc(player.ac.toString());
+      setIsEditingAc(false);
     }
   };
 
-  const handleMaxHpInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (isReviewMode) return;
-    setMaxHpInput(e.target.value);
+  const handleAcBlur = () => {
+    const newAcValue = parseInt(editingAc, 10);
+    if (isNaN(newAcValue) || newAcValue < 0) {
+      setEditingAc(player.ac.toString());
+      setIsEditingAc(false);
+      return;
+    }
+    onAcChange(player.id, newAcValue);
+    setIsEditingAc(false);
   };
 
-  const handleMaxHpInputBlur = () => {
-    if (isReviewMode || !onMaxHpChange) return;
-    const newMaxHp = parseInt(maxHpInput, 10);
-    if (isNaN(newMaxHp) || newMaxHp <= 0) {
-      setMaxHpInput(player.hp.toString());
-      toast({ title: "Invalid Max HP", description: "Max HP must be a positive number. Reverted.", variant: "destructive" });
-    } else if (newMaxHp !== player.hp) {
-      onMaxHpChange(player.id, newMaxHp);
+  const handleMaxHpChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newMaxHp = e.target.value;
+    setEditingMaxHp(newMaxHp);
+  };
+
+  const handleMaxHpKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleMaxHpBlur();
+    } else if (e.key === 'Escape') {
+      setEditingMaxHp(player.hp.toString());
+      setIsEditingMaxHp(false);
     }
   };
 
-  const handleCurrentHpInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (isReviewMode) return;
-    setCurrentHpInput(e.target.value);
+  const handleMaxHpBlur = () => {
+    const newMaxHpValue = parseInt(editingMaxHp, 10);
+    if (isNaN(newMaxHpValue) || newMaxHpValue <= 0) {
+      setEditingMaxHp(player.hp.toString());
+      setIsEditingMaxHp(false);
+      return;
+    }
+    onMaxHpChange(player.id, newMaxHpValue);
+    setIsEditingMaxHp(false);
   };
 
-  const handleCurrentHpInputBlur = () => {
-    if (isReviewMode || !onCurrentHpChange) return;
-    const newCurrentHp = parseInt(currentHpInput, 10);
-    if (isNaN(newCurrentHp) || newCurrentHp < 0) {
-      setCurrentHpInput(player.currentHp.toString());
-      toast({ title: "Invalid Current HP", description: "Current HP must be a non-negative number. Reverted.", variant: "destructive" });
-    } else if (newCurrentHp > player.hp) {
-      setCurrentHpInput(player.hp.toString()); // Cap at Max HP
-      toast({ title: "Invalid Current HP", description: `Current HP cannot exceed Max HP (${player.hp}). Reverted.`, variant: "destructive" });
-    } else if (newCurrentHp !== player.currentHp) {
-      onCurrentHpChange(player.id, newCurrentHp);
+  const handleCurrentHpChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const newCurrentHp = e.target.value;
+    setEditingCurrentHp(newCurrentHp);
+  };
+
+  const handleCurrentHpKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleCurrentHpBlur();
+    } else if (e.key === 'Escape') {
+      setEditingCurrentHp(player.currentHp.toString());
+      setIsEditingCurrentHp(false);
     }
+  };
+
+  const handleCurrentHpBlur = () => {
+    const newCurrentHpValue = parseInt(editingCurrentHp, 10);
+    if (isNaN(newCurrentHpValue) || newCurrentHpValue < 0) {
+      setEditingCurrentHp(player.currentHp.toString());
+      setIsEditingCurrentHp(false);
+      return;
+    }
+    if (newCurrentHpValue > player.hp) {
+      setEditingCurrentHp(player.currentHp.toString());
+      setIsEditingCurrentHp(false);
+      return;
+    }
+    onCurrentHpChange(player.id, newCurrentHpValue);
+    setIsEditingCurrentHp(false);
   };
 
 
@@ -193,9 +237,10 @@ export function PlayerRow({
               <span className="mr-2 truncate">{player.name}</span>
             ) : isRosterEditing && onNameChange ? (
               <Input
-                value={nameInput}
-                onChange={handleNameInputChange}
-                onBlur={handleNameInputBlur}
+                value={editingName}
+                onChange={handleNameChange}
+                onKeyDown={handleNameKeyDown}
+                onBlur={handleNameBlur}
                 className="h-8 text-lg font-headline flex-grow p-1 border-muted-foreground/50 focus:border-primary focus:ring-1 focus:ring-primary mr-2"
                 aria-label={`Edit name for ${player.name}`}
                 disabled={isReviewMode}
@@ -228,9 +273,10 @@ export function PlayerRow({
               <Input 
                 id={`ac-${player.id}`}
                 type="number" 
-                value={acInput} 
-                onChange={handleAcInputChange} 
-                onBlur={handleAcInputBlur} 
+                value={editingAc} 
+                onChange={handleAcChange} 
+                onKeyDown={handleAcKeyDown} 
+                onBlur={handleAcBlur} 
                 className="w-16 h-8 text-sm p-1"
                 aria-label={`Edit AC for ${player.name}`}
                 min="0"
@@ -246,9 +292,10 @@ export function PlayerRow({
               <Input 
                 id={`max-hp-${player.id}`}
                 type="number" 
-                value={maxHpInput} 
-                onChange={handleMaxHpInputChange} 
-                onBlur={handleMaxHpInputBlur} 
+                value={editingMaxHp} 
+                onChange={handleMaxHpChange} 
+                onKeyDown={handleMaxHpKeyDown} 
+                onBlur={handleMaxHpBlur} 
                 className="w-20 h-8 text-sm p-1"
                 aria-label={`Edit Max HP for ${player.name}`}
                 min="1"
@@ -265,10 +312,11 @@ export function PlayerRow({
                 <Input 
                   id={`current-hp-${player.id}`}
                   type="number" 
-                  value={currentHpInput} 
-                  onChange={handleCurrentHpInputChange} 
-                  onBlur={handleCurrentHpInputBlur} 
-                  className={`w-20 h-8 text-sm p-1 ${parseInt(currentHpInput, 10) <= 0 ? 'text-destructive' : ''}`}
+                  value={editingCurrentHp} 
+                  onChange={handleCurrentHpChange} 
+                  onKeyDown={handleCurrentHpKeyDown} 
+                  onBlur={handleCurrentHpBlur} 
+                  className={`w-20 h-8 text-sm p-1 ${parseInt(editingCurrentHp, 10) <= 0 ? 'text-destructive' : ''}`}
                   aria-label={`Edit Current HP for ${player.name}`}
                   min="0"
                 />

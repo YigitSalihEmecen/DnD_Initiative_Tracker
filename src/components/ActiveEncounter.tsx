@@ -1,14 +1,14 @@
-
 'use client';
 
 import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react';
-import type { Player, AppStage, Encounter, Campaign } from '@/types';
+import type { Player, AppStage, Encounter, Campaign, Monster } from '@/types';
 import { PlayerRow } from './PlayerRow';
+import BestiaryList from './BestiaryList';
+import MonsterDetails from './MonsterDetails';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from "@/hooks/use-toast";
-import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare, CheckSquare } from 'lucide-react';
+import { UserPlus, ArrowLeft, ArrowRight, ListOrdered, Play, Edit3, XSquare, CheckSquare, X, BookOpen } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,6 +27,8 @@ interface ActiveEncounterProps {
   onExitEncounter: () => void;
 }
 
+type ViewMode = 'encounter' | 'bestiary' | 'monster-details';
+
 export default function ActiveEncounter({
   encounter,
   campaign,
@@ -38,16 +40,18 @@ export default function ActiveEncounter({
   const [playerAC, setPlayerAC] = useState('');
   const [playerHP, setPlayerHP] = useState('');
   const [playerInitiative, setPlayerInitiative] = useState('');
-  const { toast } = useToast();
 
   const [rosterEditMode, setRosterEditMode] = useState(false);
   const [playerPendingDeletion, setPlayerPendingDeletion] = useState<Player | null>(null);
   const [isFinishConfirmOpen, setIsFinishConfirmOpen] = useState(false);
-
+  const [showAddForm, setShowAddForm] = useState(false);
+  
+  // Bestiary state
+  const [viewMode, setViewMode] = useState<ViewMode>('encounter');
+  const [selectedMonster, setSelectedMonster] = useState<Monster | null>(null);
 
   const { name: encounterName, players, stage, isFinished } = encounter;
   const isReviewMode = !!isFinished;
-
 
   const updateEncounterInCampaign = (updatedEncounterData: Partial<Encounter>) => {
     const updatedEncounter = { ...encounter, ...updatedEncounterData, lastModified: Date.now() };
@@ -59,7 +63,6 @@ export default function ActiveEncounter({
 
   const showInitiativeInputFieldInAddForm = !isReviewMode && rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP');
 
-
   const handleAddPlayer = (e: FormEvent) => {
     e.preventDefault();
     if (isReviewMode) return;
@@ -70,20 +73,10 @@ export default function ActiveEncounter({
 
     if (showInitiativeInputFieldInAddForm) {
       if (!playerName.trim() || isNaN(ac) || isNaN(hp) || ac < 0 || hp <= 0 || isNaN(initiativeVal)) {
-        toast({
-          title: "Invalid Input",
-          description: "Please enter valid Name, AC (non-negative), HP (positive), and Initiative.",
-          variant: "destructive",
-        });
         return;
       }
     } else {
       if (!playerName.trim() || isNaN(ac) || isNaN(hp) || ac < 0 || hp <= 0) {
-        toast({
-          title: "Invalid Input",
-          description: "Please enter valid Name, AC (non-negative), and HP (positive).",
-          variant: "destructive",
-        });
         return;
       }
     }
@@ -110,19 +103,43 @@ export default function ActiveEncounter({
     if (showInitiativeInputFieldInAddForm) {
       setPlayerInitiative('');
     }
-    toast({
-      title: "Combatant Added",
-      description: `${newPlayer.name} has been added to "${encounterName}".`,
-    });
+    setShowAddForm(false);
   };
 
   // Placeholder function for adding from bestiary
   const handleAddFromBestiary = () => {
-    toast({
-      title: "Coming Soon!",
-      description: "Adding from Bestiary is not yet implemented.",
-    });
-    // Future implementation will open a dialog or navigate to a bestiary selection.
+    setViewMode('bestiary');
+  };
+
+  const handleBackToBestiary = () => {
+    setSelectedMonster(null);
+    setViewMode('bestiary');
+  };
+
+  const handleBackToEncounter = () => {
+    setSelectedMonster(null);
+    setViewMode('encounter');
+  };
+
+  const handleSelectMonster = (monster: Monster) => {
+    setSelectedMonster(monster);
+    setViewMode('monster-details');
+  };
+
+  const handleAddMonsterToEncounter = (monster: Player) => {
+    if (isReviewMode) return;
+
+    let updatedPlayersList = [...players, monster];
+    if (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP') {
+      updatedPlayersList.sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
+    }
+
+    updateEncounterInCampaign({ players: updatedPlayersList });
+    setViewMode('encounter');
+  };
+
+  const handleShowAddForm = () => {
+    setShowAddForm(true);
   };
 
   const handleInitiativeChange = (playerId: string, initiative: number) => {
@@ -134,19 +151,10 @@ export default function ActiveEncounter({
   const confirmInitiatives = () => {
     if (isReviewMode) return;
     if (players.some(p => p.initiative === undefined || p.initiative === null || isNaN(p.initiative))) {
-       toast({
-        title: "Missing Initiatives",
-        description: "Please set initiative for all combatants.",
-        variant: "destructive",
-      });
       return;
     }
     const sortedPlayers = [...players].sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
     updateEncounterInCampaign({ players: sortedPlayers, stage: 'PRE_COMBAT' });
-     toast({
-      title: "Initiatives Set",
-      description: `Combatants ordered for "${encounterName}". Ready to start!`,
-    });
   };
 
   const handleDamageApply = (playerId: string, damage: number) => {
@@ -191,10 +199,6 @@ export default function ActiveEncounter({
 
     updateEncounterInCampaign({ players: updatedPlayers, stage: updatedStage });
 
-    toast({
-      title: "Combatant Removed",
-      description: `"${playerName}" has been removed from "${encounterName}".`,
-    });
     setPlayerPendingDeletion(null);
     if (updatedPlayers.length === 0) {
       setRosterEditMode(false);
@@ -212,10 +216,6 @@ export default function ActiveEncounter({
     );
     updateEncounterInCampaign({ players: updatedPlayers });
     setLastEditedPlayerId(playerId);
-    toast({
-      title: "Combatant Name Updated",
-      description: `Name changed to "${newName}".`,
-    });
   };
 
   const handlePlayerAcChange = (playerId: string, newAc: number) => {
@@ -225,10 +225,6 @@ export default function ActiveEncounter({
     );
     updateEncounterInCampaign({ players: updatedPlayers });
     setLastEditedPlayerId(playerId);
-    toast({
-      title: "AC Updated",
-      description: `${players.find(p=>p.id===playerId)?.name}'s AC changed to ${newAc}.`,
-    });
   };
 
   const handlePlayerMaxHpChange = (playerId: string, newMaxHp: number) => {
@@ -238,10 +234,6 @@ export default function ActiveEncounter({
     );
     updateEncounterInCampaign({ players: updatedPlayers });
     setLastEditedPlayerId(playerId);
-    toast({
-      title: "Max HP Updated",
-      description: `${players.find(p=>p.id===playerId)?.name}'s Max HP changed to ${newMaxHp}.`,
-    });
   };
 
   const handlePlayerCurrentHpChange = (playerId: string, newCurrentHp: number) => {
@@ -254,19 +246,11 @@ export default function ActiveEncounter({
     );
     updateEncounterInCampaign({ players: updatedPlayers });
     setLastEditedPlayerId(playerId);
-    toast({
-      title: "Current HP Updated",
-      description: `${playerToUpdate.name}'s Current HP changed to ${Math.max(0, Math.min(newCurrentHp, playerToUpdate.hp))}.`,
-    });
   };
 
   const handleConfirmFinishEncounter = () => {
     if (isReviewMode) return;
     updateEncounterInCampaign({ isFinished: true });
-    toast({
-      title: "Encounter Finished",
-      description: `"${encounterName}" has been marked as complete.`,
-    });
     setIsFinishConfirmOpen(false);
     onExitEncounter();
   };
@@ -283,9 +267,40 @@ export default function ActiveEncounter({
   const showDeleteButtonOnRow = !isReviewMode && rosterEditMode;
   const formGridColsClass = showInitiativeInputFieldInAddForm ? "md:grid-cols-5" : "md:grid-cols-4";
 
+  // Show bestiary if in bestiary mode
+  if (viewMode === 'bestiary') {
+    return (
+      <BestiaryList 
+        onSelectMonster={handleSelectMonster}
+        onBack={handleBackToEncounter}
+      />
+    );
+  }
+
+  // Show monster details if in monster details mode
+  if (viewMode === 'monster-details' && selectedMonster) {
+    return (
+      <MonsterDetails 
+        monster={selectedMonster}
+        onBack={handleBackToBestiary}
+        onAddMonster={handleAddMonsterToEncounter}
+      />
+    );
+  }
 
   return (
-    <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
+    <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in relative">
+      {/* Back button at top center */}
+      <div className="flex justify-center mb-8">
+        <Button 
+          onClick={onExitEncounter} 
+          className="h-12 w-12 rounded-xl bg-black text-white hover:bg-gray-800 border-0"
+          aria-label="Back to encounters"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      </div>
+
       <header className="mb-8 text-center">
         <h1 className="text-4xl font-headline font-bold">
           {encounterName} {isReviewMode && "(Finished)"}
@@ -293,12 +308,17 @@ export default function ActiveEncounter({
         <p className="text-muted-foreground">Campaign: {campaign.name}</p>
       </header>
 
-      {!isReviewMode && (stage === 'PLAYER_SETUP' || rosterEditMode) && (
+      {!isReviewMode && (stage === 'PLAYER_SETUP' || rosterEditMode) && showAddForm && (
         <Card className="mb-4 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-2xl font-headline">
-              <UserPlus size={28} aria-hidden="true" /> Add Combatants
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-2xl font-headline">
+                <UserPlus size={28} aria-hidden="true" /> Add Combatants
+              </CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setShowAddForm(false)} className="h-8 w-8">
+                <X size={16} />
+              </Button>
+            </div>
             <CardDescription>Enter player or monster details to add them to "{encounterName}". {rosterEditMode && (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP') ? "Provide initiative for correct placement." : ""}</CardDescription>
           </CardHeader>
           <CardContent>
@@ -329,10 +349,15 @@ export default function ActiveEncounter({
         </Card>
       )}
 
-      {!isReviewMode && (stage === 'PLAYER_SETUP' || rosterEditMode) && (
-         <Button onClick={handleAddFromBestiary} size="lg" className="h-12 text-lg px-8 w-full mb-8">
-           Add from Bestiary
-         </Button>
+      {!isReviewMode && (stage === 'PLAYER_SETUP' || rosterEditMode) && !showAddForm && (
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <Button onClick={handleShowAddForm} className="h-14 text-xl px-12 font-regular flex-1">
+            <UserPlus className="mr-2 h-6 w-6" /> Add Combatants
+          </Button>
+          <Button onClick={handleAddFromBestiary} className="h-14 text-xl px-12 font-regular flex-1">
+            <BookOpen className="mr-2 h-6 w-6" /> Add from Bestiary
+          </Button>
+        </div>
       )}
 
       {players.length > 0 && (
@@ -369,7 +394,7 @@ export default function ActiveEncounter({
 
       {!isReviewMode && stage === 'PLAYER_SETUP' && players.length > 0 && !rosterEditMode && (
         <div className="text-center mb-8 animate-fade-in">
-          <Button onClick={() => { updateEncounterInCampaign({ stage: 'INITIATIVE_SETUP' }); toast({title: "Set Initiatives", description: `Enter initiative scores for each combatant in "${encounterName}".`}); }} size="lg">
+          <Button onClick={() => { updateEncounterInCampaign({ stage: 'INITIATIVE_SETUP' }); }} size="lg">
             Proceed to Initiative <ArrowRight className="ml-2 h-5 w-5" />
           </Button>
         </div>
@@ -386,7 +411,7 @@ export default function ActiveEncounter({
       {!isReviewMode && stage === 'PRE_COMBAT' && !rosterEditMode && (
          <div className="text-center my-8 animate-fade-in">
           <Button 
-            onClick={() => {updateEncounterInCampaign({stage: 'COMBAT_ACTIVE'}); toast({title: `Encounter Started: ${encounterName}!`, description: "May your dice roll true."});}} 
+            onClick={() => {updateEncounterInCampaign({stage: 'COMBAT_ACTIVE'});}} 
             size="lg" 
             className="rounded-xl w-20 h-20 shadow-2xl text-lg"
             disabled={players.length === 0}
@@ -397,9 +422,6 @@ export default function ActiveEncounter({
       )}
 
       <div className="mt-12 text-center flex flex-col sm:flex-row justify-center items-center gap-4">
-          <Button onClick={onExitEncounter} variant="outline">
-            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Encounters List
-          </Button>
           {!isReviewMode && (
             <Button onClick={handleToggleRosterEditMode} variant="outline">
               {rosterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}

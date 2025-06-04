@@ -1,13 +1,11 @@
-
 'use client';
 
-import type { Campaign } from '@/types';
+import type { Campaign, Encounter } from '@/types';
 import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil, XSquare, FilePlus } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
   AlertDialog,
@@ -45,7 +43,6 @@ export default function CampaignManagerComponent({
   const [dialogCampaignNameForEdit, setDialogCampaignNameForEdit] = useState('');
   const [isCampaignEditMode, setIsCampaignEditMode] = useState(false);
 
-  const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -59,20 +56,11 @@ export default function CampaignManagerComponent({
 
   const handleConfirmCreateCampaign = () => {
     if (!newCampaignName.trim()) {
-      toast({
-        title: "Campaign Name Required",
-        description: "Please enter a name for the new campaign.",
-        variant: "destructive",
-      });
       return;
     }
     const newId = onCreateCampaign(newCampaignName);
-    toast({
-      title: "Campaign Created",
-      description: `"${newCampaignName}" is ready. Select it to add encounters.`,
-    });
+    onSelectCampaign(newId);
     setIsCreateDialogOpen(false);
-    onSelectCampaign(newId); // Navigate to the new campaign
   };
 
   const handleOpenEditDialog = (campaign: Campaign) => {
@@ -82,11 +70,6 @@ export default function CampaignManagerComponent({
 
   const handleConfirmEditCampaignName = () => {
     if (!editingCampaignId || !dialogCampaignNameForEdit.trim()) {
-      toast({
-        title: "Invalid Input",
-        description: "Campaign name cannot be empty.",
-        variant: "destructive",
-      });
       return;
     }
     const campaignToUpdate = campaigns.find(c => c.id === editingCampaignId);
@@ -97,10 +80,6 @@ export default function CampaignManagerComponent({
         lastModified: Date.now()
       };
       onUpdateCampaign(updatedCampaign);
-      toast({
-        title: "Campaign Updated",
-        description: `Campaign name changed to "${updatedCampaign.name}".`,
-      });
     }
     setEditingCampaignId(null);
     setDialogCampaignNameForEdit('');

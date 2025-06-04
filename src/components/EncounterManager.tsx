@@ -1,4 +1,3 @@
-
 'use client';
 
 import type { Encounter, Campaign, AppStage } from '@/types';
@@ -7,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { FilePlus, PlayCircle, Trash2, Edit3, ListChecks, ArrowLeft, Pencil, XSquare, CheckCircle, Eye } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from 'date-fns';
 import {
   AlertDialog,
@@ -22,6 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import ActiveEncounter from './ActiveEncounter';
 
 
 interface EncounterManagerProps {
@@ -45,7 +44,6 @@ export default function EncounterManager({
 
   const [isEncounterEditMode, setIsEncounterEditMode] = useState(false);
   
-  const { toast } = useToast();
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
@@ -59,11 +57,6 @@ export default function EncounterManager({
 
   const handleConfirmCreateEncounter = () => {
     if (!newEncounterName.trim()) {
-      toast({
-        title: "Encounter Name Required",
-        description: "Please enter a name for the new encounter.",
-        variant: "destructive",
-      });
       return;
     }
     const newEncounter: Encounter = {
@@ -79,27 +72,20 @@ export default function EncounterManager({
     onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
     
     onSelectEncounter(newEncounter.id); 
-    toast({
-      title: "Encounter Created",
-      description: `"${newEncounterName}" in campaign "${campaign.name}" is ready. Continuing...`,
-    });
     setIsCreateDialogOpen(false);
   };
 
   const handleDeleteEncounter = (encounterId: string) => {
     const encounterToDelete = campaign.encounters.find(enc => enc.id === encounterId);
     if (!encounterToDelete) {
-        toast({ title: "Error", description: "Encounter not found for deletion.", variant: "destructive" });
         return;
     }
     const updatedEncounters = campaign.encounters.filter(enc => enc.id !== encounterId);
     onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
-    toast({ title: "Encounter Deleted", description: `"${encounterToDelete.name}" removed from campaign "${campaign.name}".` });
   };
 
   const handleDeleteAllEncountersInCampaign = () => {
     onCampaignUpdate({ ...campaign, encounters: [], lastModified: Date.now() });
-    toast({ title: "All Encounters Deleted", description: `All encounters in campaign "${campaign.name}" removed.` });
   };
   
   const getStageDisplay = (stage?: AppStage) => {
@@ -130,11 +116,6 @@ export default function EncounterManager({
 
   const handleConfirmEditEncounterName = () => {
     if (!editingEncounterId || !dialogEncounterNameForEdit.trim()) {
-      toast({
-        title: "Invalid Input",
-        description: "Encounter name cannot be empty.",
-        variant: "destructive",
-      });
       return;
     }
     const encounterToUpdate = campaign.encounters.find(enc => enc.id === editingEncounterId);
@@ -149,10 +130,6 @@ export default function EncounterManager({
       ).sort((a,b) => b.lastModified - a.lastModified);
       
       onCampaignUpdate({ ...campaign, encounters: updatedEncounters, lastModified: Date.now() });
-      toast({
-        title: "Encounter Updated",
-        description: `Encounter name changed to "${updatedEncounter.name}".`,
-      });
     }
     setEditingEncounterId(null);
     setDialogEncounterNameForEdit('');
@@ -173,6 +150,17 @@ export default function EncounterManager({
 
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-8 animate-fade-in font-code">
+      {/* Back button at top center */}
+      <div className="flex justify-center mb-8">
+        <Button 
+          onClick={onExitCampaign} 
+          className="h-12 w-12 rounded-xl bg-black text-white hover:bg-gray-800 border-0"
+          aria-label="Back to campaigns"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+      </div>
+
       <header className="mb-10 text-center">
         <h1 className="text-4xl font-headline font-bold tracking-tight">Campaign: {campaign.name}</h1>
         <p className="text-xl text-muted-foreground mt-2">Manage Encounters for this Campaign</p>
@@ -353,9 +341,6 @@ export default function EncounterManager({
         </Card>
        )}
       <div className="mt-12 text-center flex flex-col sm:flex-row justify-center items-center gap-4">
-        <Button onClick={onExitCampaign} variant="outline">
-          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Campaigns
-        </Button>
         {campaign.encounters.length > 0 && (
           <Button onClick={handleToggleEncounterEditMode} variant="outline">
             {isEncounterEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
