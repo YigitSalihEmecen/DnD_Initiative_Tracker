@@ -20,6 +20,13 @@ export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onB
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
+    console.log(`BestiaryList loaded for type: ${typeTitle} with ${monsters.length} monsters`);
+    if (monsters.length === 0) {
+      console.warn('BestiaryList received empty monsters array');
+    }
+  }, [monsters, typeTitle]);
+
+  useEffect(() => {
     if (searchTerm) {
       const filtered = monsters.filter(monster =>
         monster.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
