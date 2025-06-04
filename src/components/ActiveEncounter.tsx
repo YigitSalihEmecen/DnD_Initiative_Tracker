@@ -27,17 +27,17 @@ interface ActiveEncounterProps {
   onExitEncounter: () => void;
 }
 
-export default function ActiveEncounter({ 
-  encounter, 
-  campaign, 
-  onCampaignUpdate, 
-  onExitEncounter 
+export default function ActiveEncounter({
+  encounter,
+  campaign,
+  onCampaignUpdate,
+  onExitEncounter
 }: ActiveEncounterProps) {
   const [lastEditedPlayerId, setLastEditedPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState('');
   const [playerAC, setPlayerAC] = useState('');
   const [playerHP, setPlayerHP] = useState('');
-  const [playerInitiative, setPlayerInitiative] = useState(''); 
+  const [playerInitiative, setPlayerInitiative] = useState('');
   const { toast } = useToast();
 
   const [rosterEditMode, setRosterEditMode] = useState(false);
@@ -62,7 +62,7 @@ export default function ActiveEncounter({
 
   const handleAddPlayer = (e: FormEvent) => {
     e.preventDefault();
-    if (isReviewMode) return; 
+    if (isReviewMode) return;
 
     const ac = parseInt(playerAC, 10);
     const hp = parseInt(playerHP, 10);
@@ -101,9 +101,9 @@ export default function ActiveEncounter({
     if (stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE' || stage === 'INITIATIVE_SETUP') {
       updatedPlayersList.sort((a, b) => (b.initiative ?? 0) - (a.initiative ?? 0));
     }
-    
+
     updateEncounterInCampaign({ players: updatedPlayersList });
-    
+
     setPlayerName('');
     setPlayerAC('');
     setPlayerHP('');
@@ -114,6 +114,15 @@ export default function ActiveEncounter({
       title: "Combatant Added",
       description: `${newPlayer.name} has been added to "${encounterName}".`,
     });
+  };
+
+  // Placeholder function for adding from bestiary
+  const handleAddFromBestiary = () => {
+    toast({
+      title: "Coming Soon!",
+      description: "Adding from Bestiary is not yet implemented.",
+    });
+    // Future implementation will open a dialog or navigate to a bestiary selection.
   };
 
   const handleInitiativeChange = (playerId: string, initiative: number) => {
@@ -148,7 +157,7 @@ export default function ActiveEncounter({
     updateEncounterInCampaign({ players: updatedPlayers });
     setLastEditedPlayerId(playerId);
   };
-  
+
   const handleHealApply = (playerId: string, heal: number) => {
     if (isReviewMode) return;
     const updatedPlayers = players.map((p) =>
@@ -174,35 +183,35 @@ export default function ActiveEncounter({
     const playerId = playerPendingDeletion.id;
     const playerName = playerPendingDeletion.name;
     const updatedPlayers = players.filter(p => p.id !== playerId);
-    
+
     let updatedStage = encounter.stage;
     if (updatedPlayers.length === 0 && (stage === 'INITIATIVE_SETUP' || stage === 'PRE_COMBAT' || stage === 'COMBAT_ACTIVE')) {
       updatedStage = 'PLAYER_SETUP';
     }
 
     updateEncounterInCampaign({ players: updatedPlayers, stage: updatedStage });
-    
+
     toast({
       title: "Combatant Removed",
       description: `"${playerName}" has been removed from "${encounterName}".`,
     });
     setPlayerPendingDeletion(null);
     if (updatedPlayers.length === 0) {
-      setRosterEditMode(false); 
+      setRosterEditMode(false);
     }
   };
 
   const handleCancelDeletePlayer = () => {
     setPlayerPendingDeletion(null);
   };
-  
+
   const handlePlayerNameChange = (playerId: string, newName: string) => {
     if (isReviewMode) return;
     const updatedPlayers = players.map((p) =>
       p.id === playerId ? { ...p, name: newName } : p
     );
     updateEncounterInCampaign({ players: updatedPlayers });
-    setLastEditedPlayerId(playerId); 
+    setLastEditedPlayerId(playerId);
     toast({
       title: "Combatant Name Updated",
       description: `Name changed to "${newName}".`,
@@ -285,7 +294,7 @@ export default function ActiveEncounter({
       </header>
 
       {!isReviewMode && (stage === 'PLAYER_SETUP' || rosterEditMode) && (
-        <Card className="mb-8 shadow-lg">
+        <Card className="mb-4 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl font-headline">
               <UserPlus size={28} aria-hidden="true" /> Add Combatants
@@ -320,6 +329,12 @@ export default function ActiveEncounter({
         </Card>
       )}
 
+      {!isReviewMode && (stage === 'PLAYER_SETUP' || rosterEditMode) && (
+         <Button onClick={handleAddFromBestiary} size="lg" className="h-12 text-lg px-8 w-full mb-8">
+           Add from Bestiary
+         </Button>
+      )}
+
       {players.length > 0 && (
         <div className="mb-8 animate-fade-in">
           <h2 className="text-xl font-headline font-semibold mb-3">
@@ -351,7 +366,7 @@ export default function ActiveEncounter({
           ))}
         </div>
       )}
-      
+
       {!isReviewMode && stage === 'PLAYER_SETUP' && players.length > 0 && !rosterEditMode && (
         <div className="text-center mb-8 animate-fade-in">
           <Button onClick={() => { updateEncounterInCampaign({ stage: 'INITIATIVE_SETUP' }); toast({title: "Set Initiatives", description: `Enter initiative scores for each combatant in "${encounterName}".`}); }} size="lg">
@@ -367,7 +382,7 @@ export default function ActiveEncounter({
           </Button>
         </div>
       )}
-      
+
       {!isReviewMode && stage === 'PRE_COMBAT' && !rosterEditMode && (
          <div className="text-center my-8 animate-fade-in">
           <Button 
