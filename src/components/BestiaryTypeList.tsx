@@ -27,36 +27,20 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
   const [filteredTypes, setFilteredTypes] = useState<MonsterTypeData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Major bestiary files to load (prioritizing main books)
-  const bestiaryFiles = [
-    'bestiary-mpmm.json',    // Mordenkainen Presents: Monsters of the Multiverse (replaces MM)
-    'bestiary-vgm.json',     // Volo's Guide to Monsters  
-    'bestiary-mtf.json',     // Mordenkainen's Tome of Foes
-    'bestiary-ftd.json',     // Fizban's Treasury of Dragons
-    'bestiary-phb.json',     // Player's Handbook monsters
-    'bestiary-cos.json',     // Curse of Strahd
-    'bestiary-pota.json',    // Princes of the Apocalypse
-    'bestiary-skt.json',     // Storm King's Thunder
-    'bestiary-toa.json',     // Tomb of Annihilation
-    'bestiary-wdh.json',     // Waterdeep: Dragon Heist
-    'bestiary-wdmm.json',    // Waterdeep: Dungeon of the Mad Mage
-    'bestiary-idrotf.json',  // Icewind Dale: Rime of the Frostmaiden
-    'bestiary-mot.json',     // Mythic Odysseys of Theros
-    'bestiary-erlw.json',    // Eberron: Rising from the Last War
-    'bestiary-ggr.json',     // Guildmasters' Guide to Ravnica
-    'bestiary-egw.json',     // Explorer's Guide to Wildemount
-    'bestiary-tftyp.json',   // Tales from the Yawning Portal
-    'bestiary-oota.json',    // Out of the Abyss
-    'bestiary-scc.json',     // Strixhaven: A Curriculum of Chaos
-    'bestiary-bam.json',     // Book of Many Things
-    'bestiary-gos.json',     // Ghosts of Saltmarsh
-    'bestiary-bgg.json',     // Bigby's Glory of the Giants
-    'bestiary-dsotdq.json',  // Dragonlance: Shadow of the Dragon Queen
-  ];
+  // Load all available bestiary files dynamically
+  const [bestiaryFiles, setBestiaryFiles] = useState<string[]>([]);
 
   useEffect(() => {
-    loadAllMonsters();
+    // First discover all bestiary files, then load monsters
+    discoverBestiaryFiles();
   }, []);
+
+  useEffect(() => {
+    // Load monsters when bestiary files are discovered
+    if (bestiaryFiles.length > 0) {
+      loadAllMonsters();
+    }
+  }, [bestiaryFiles]);
 
   useEffect(() => {
     if (searchTerm) {
@@ -69,6 +53,83 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
       setFilteredTypes(monsterTypes);
     }
   }, [searchTerm, monsterTypes]);
+
+  const discoverBestiaryFiles = async () => {
+    try {
+      // Get the base path for production (GitHub Pages)
+      const basePath = process.env.NODE_ENV === 'production' ? '/DnD_Initiative_Tracker' : '';
+      
+      // Try to fetch a directory listing or use a predefined list
+      // Since we can't list directory contents via HTTP, we'll try to fetch known files
+      // and filter out the ones that don't exist
+      const potentialFiles = [
+        'bestiary-aatm.json', 'bestiary-ai.json', 'bestiary-aitfr-dn.json', 'bestiary-aitfr-fcd.json',
+        'bestiary-aitfr-isf.json', 'bestiary-aitfr-thp.json', 'bestiary-awm.json', 'bestiary-bam.json',
+        'bestiary-bgdia.json', 'bestiary-bgg.json', 'bestiary-bmt.json', 'bestiary-cm.json',
+        'bestiary-coa.json', 'bestiary-cos.json', 'bestiary-crcotn.json', 'bestiary-dc.json',
+        'bestiary-dip.json', 'bestiary-ditlcot.json', 'bestiary-dmg.json', 'bestiary-dod.json',
+        'bestiary-dodk.json', 'bestiary-dosi.json', 'bestiary-dsotdq.json', 'bestiary-egw.json',
+        'bestiary-erlw.json', 'bestiary-esk.json', 'bestiary-ftd.json', 'bestiary-ggr.json',
+        'bestiary-ghloe.json', 'bestiary-gos.json', 'bestiary-gotsf.json', 'bestiary-hat-tg.json',
+        'bestiary-hftt.json', 'bestiary-hol.json', 'bestiary-hotdq.json', 'bestiary-idrotf.json',
+        'bestiary-imr.json', 'bestiary-jttrc.json', 'bestiary-kftgv.json', 'bestiary-kkw.json',
+        'bestiary-llk.json', 'bestiary-lmop.json', 'bestiary-lox.json', 'bestiary-lr.json',
+        'bestiary-lrdt.json', 'bestiary-mabjov.json', 'bestiary-mcv1sc.json', 'bestiary-mcv2dc.json',
+        'bestiary-mcv3mc.json', 'bestiary-mcv4ec.json', 'bestiary-mff.json', 'bestiary-mgelft.json',
+        'bestiary-mismv1.json', 'bestiary-mm.json', 'bestiary-mot.json', 'bestiary-mpmm.json',
+        'bestiary-mpp.json', 'bestiary-mtf.json', 'bestiary-nrh-ass.json', 'bestiary-nrh-at.json',
+        'bestiary-nrh-avitw.json', 'bestiary-nrh-awol.json', 'bestiary-nrh-coi.json', 'bestiary-nrh-tcmc.json',
+        'bestiary-nrh-tlt.json', 'bestiary-oota.json', 'bestiary-oow.json', 'bestiary-pabtso.json',
+        'bestiary-phb.json', 'bestiary-pota.json', 'bestiary-ps-a.json', 'bestiary-ps-d.json',
+        'bestiary-ps-i.json', 'bestiary-ps-k.json', 'bestiary-ps-x.json', 'bestiary-ps-z.json',
+        'bestiary-qftis.json', 'bestiary-rmbre.json', 'bestiary-rot.json', 'bestiary-rtg.json',
+        'bestiary-sads.json', 'bestiary-scc.json', 'bestiary-sdw.json', 'bestiary-skt.json',
+        'bestiary-slw.json', 'bestiary-tce.json', 'bestiary-tdcsr.json', 'bestiary-tftyp.json',
+        'bestiary-toa.json', 'bestiary-tob1-2023.json', 'bestiary-tofw.json', 'bestiary-ttp.json',
+        'bestiary-vd.json', 'bestiary-veor.json', 'bestiary-vgm.json', 'bestiary-vrgr.json',
+        'bestiary-wbtw.json', 'bestiary-wdh.json', 'bestiary-wdmm.json', 'bestiary-xdmg.json',
+        'bestiary-xge.json', 'bestiary-xmm.json', 'bestiary-xphb.json'
+      ];
+      
+             // Test which files actually exist by making HEAD requests in batches
+       const existingFiles: string[] = [];
+       const batchSize = 10; // Process files in smaller batches
+       
+       for (let i = 0; i < potentialFiles.length; i += batchSize) {
+         const batch = potentialFiles.slice(i, i + batchSize);
+         const batchPromises = batch.map(async (file) => {
+           try {
+             const response = await fetch(`${basePath}/${file}`, { method: 'HEAD' });
+             return response.ok ? file : null;
+           } catch (error) {
+             return null;
+           }
+         });
+         
+         const batchResults = await Promise.all(batchPromises);
+         const validFiles = batchResults.filter(file => file !== null) as string[];
+         existingFiles.push(...validFiles);
+         
+         // Small delay between batches to avoid overwhelming the server
+         if (i + batchSize < potentialFiles.length) {
+           await new Promise(resolve => setTimeout(resolve, 100));
+         }
+       }
+      
+      console.log(`Discovered ${existingFiles.length} bestiary files`);
+      setBestiaryFiles(existingFiles);
+         } catch (error) {
+       console.error('Error discovering bestiary files:', error);
+       // Fallback to a comprehensive set of major files if discovery fails
+       setBestiaryFiles([
+         'bestiary-mm.json', 'bestiary-mpmm.json', 'bestiary-vgm.json', 'bestiary-mtf.json',
+         'bestiary-ftd.json', 'bestiary-tob1-2023.json', 'bestiary-xmm.json', 'bestiary-cos.json',
+         'bestiary-skt.json', 'bestiary-toa.json', 'bestiary-wdh.json', 'bestiary-wdmm.json',
+         'bestiary-idrotf.json', 'bestiary-mot.json', 'bestiary-erlw.json', 'bestiary-ggr.json',
+         'bestiary-egw.json', 'bestiary-tftyp.json', 'bestiary-oota.json', 'bestiary-bgg.json'
+       ]);
+     }
+  };
 
   const loadAllMonsters = async () => {
     try {
@@ -103,30 +164,69 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
       setAllMonsters(allMonsters);
       
       // Group monsters by type with proper null checks
+      console.log('Starting type grouping...');
       const typeGroups: { [key: string]: Monster[] } = {};
       
-      allMonsters.forEach(monster => {
-        // Handle different type formats and null checks
-        let monsterType: string;
-        
-        if (!monster.type) {
-          monsterType = 'Unknown';
-        } else if (typeof monster.type === 'string') {
-          monsterType = monster.type;
-        } else if (typeof monster.type === 'object' && monster.type.type) {
-          monsterType = monster.type.type;
-        } else {
-          monsterType = 'Unknown';
+      allMonsters.forEach((monster, index) => {
+        try {
+          // Handle different type formats and null checks
+          let monsterType: string;
+          
+          if (!monster) {
+            console.warn(`Monster at index ${index} is null/undefined`);
+            return;
+          }
+          
+          // Skip monsters without valid type data
+          if (!monster.type) {
+            console.warn(`Monster ${monster.name} has no type, skipping`);
+            return; // Skip this monster
+          }
+          
+          if (typeof monster.type === 'string') {
+            monsterType = monster.type;
+          } else if (typeof monster.type === 'object' && monster.type.type) {
+            // Handle nested type objects
+            if (typeof monster.type.type === 'string') {
+              monsterType = monster.type.type;
+            } else if (typeof monster.type.type === 'object' && (monster.type.type as any).choose && Array.isArray((monster.type.type as any).choose)) {
+              // For choose arrays, create separate entries for each option
+              const chooseOptions = (monster.type.type as any).choose;
+              chooseOptions.forEach((chosenType: string) => {
+                const capitalizedType = chosenType.charAt(0).toUpperCase() + chosenType.slice(1).toLowerCase();
+                if (!typeGroups[capitalizedType]) {
+                  typeGroups[capitalizedType] = [];
+                }
+                typeGroups[capitalizedType].push(monster);
+              });
+              return; // Skip the normal processing since we handled it above
+            } else {
+              console.warn(`Monster ${monster.name} has unhandled nested type structure, skipping`);
+              return; // Skip this monster
+            }
+          } else {
+            console.warn(`Monster ${monster.name} has unhandled type structure:`, monster.type, 'skipping');
+            return; // Skip this monster
+          }
+          
+          // Ensure monsterType is a string before calling charAt
+          if (typeof monsterType !== 'string') {
+            monsterType = 'Unknown';
+          }
+          
+          // Capitalize first letter
+          monsterType = monsterType.charAt(0).toUpperCase() + monsterType.slice(1).toLowerCase();
+          
+          if (!typeGroups[monsterType]) {
+            typeGroups[monsterType] = [];
+          }
+          typeGroups[monsterType].push(monster);
+        } catch (error) {
+          console.warn(`Error processing monster at index ${index}:`, error);
         }
-        
-        // Capitalize first letter
-        monsterType = monsterType.charAt(0).toUpperCase() + monsterType.slice(1).toLowerCase();
-        
-        if (!typeGroups[monsterType]) {
-          typeGroups[monsterType] = [];
-        }
-        typeGroups[monsterType].push(monster);
       });
+      
+      console.log(`Grouped into ${Object.keys(typeGroups).length} types`);
       
       // Convert to type data with descriptions and icons
       const types: MonsterTypeData[] = Object.entries(typeGroups).map(([type, monsters]) => ({
@@ -136,16 +236,60 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
         icon: getTypeIcon(type)
       }));
       
+      console.log('Created type data array:', types.length);
+      
       // Sort by count (most common types first)
       types.sort((a, b) => b.count - a.count);
       
+      console.log('Setting monster types and filtered types...');
       setMonsterTypes(types);
       setFilteredTypes(types);
+      console.log('Type data set successfully');
     } catch (error) {
       console.error('Error loading bestiary data:', error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper functions to clean complex objects
+  const cleanTypeProperty = (type: any): string => {
+    if (!type) return 'Unspecified';
+    if (typeof type === 'string') return type;
+    if (typeof type === 'object') {
+      // Handle nested type objects with choose properties
+      if (type.type) {
+        if (typeof type.type === 'string') {
+          return type.tags ? `${type.type} (${type.tags.join(', ')})` : type.type;
+        } else if (typeof type.type === 'object' && type.type.choose && Array.isArray(type.type.choose)) {
+          // Convert choose arrays to string
+          return type.type.choose.join(' or ');
+        }
+      }
+      // Handle direct choose objects
+      if (type.choose && Array.isArray(type.choose)) {
+        return type.choose.join(' or ');
+      }
+      return 'Unspecified';
+    }
+    return 'Unspecified';
+  };
+
+  const cleanArrayProperty = (arr: any): any => {
+    if (!arr) return arr;
+    if (Array.isArray(arr)) {
+      return arr.map(item => {
+        if (typeof item === 'string' || typeof item === 'number') return item;
+        if (typeof item === 'object' && item !== null) {
+          if (item.choose && Array.isArray(item.choose)) {
+            return item.choose.join(' or ');
+          }
+                     return 'Unspecified';
+         }
+         return item;
+      });
+    }
+    return arr;
   };
 
   const handleSelectType = (selectedType: string) => {
@@ -170,12 +314,34 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
         let monsterType: string;
         
         if (!monster.type) {
-          monsterType = 'Unknown';
+          return false; // Skip monsters without type
         } else if (typeof monster.type === 'string') {
           monsterType = monster.type;
         } else if (typeof monster.type === 'object' && monster.type.type) {
-          monsterType = monster.type.type;
+          // Handle nested type objects
+          if (typeof monster.type.type === 'string') {
+            monsterType = monster.type.type;
+          } else if (typeof monster.type.type === 'object' && (monster.type.type as any).choose && Array.isArray((monster.type.type as any).choose)) {
+            // For choose arrays, check if any of the options match the selected type
+            const chooseOptions = (monster.type.type as any).choose;
+            const matchesAnyOption = chooseOptions.some((chosenType: string) => {
+              const capitalizedType = chosenType.charAt(0).toUpperCase() + chosenType.slice(1).toLowerCase();
+              return capitalizedType === selectedType;
+            });
+            if (matchesAnyOption) {
+              monsterType = selectedType; // Use the selected type if it matches
+            } else {
+              return false; // This monster doesn't match the selected type
+            }
+          } else {
+            return false; // Skip monsters with unhandled type structures
+          }
         } else {
+          return false; // Skip monsters with unhandled type structures
+        }
+        
+        // Ensure monsterType is a string before calling charAt
+        if (typeof monsterType !== 'string') {
           monsterType = 'Unknown';
         }
         
@@ -183,6 +349,14 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
         monsterType = monsterType.charAt(0).toUpperCase() + monsterType.slice(1).toLowerCase();
         
         return monsterType === selectedType;
+      }).map(monster => {
+        // Clean monster data to prevent React errors with complex objects
+        return {
+          ...monster,
+          type: cleanTypeProperty(monster.type),
+          alignment: cleanArrayProperty(monster.alignment),
+          size: cleanArrayProperty(monster.size)
+        };
       }).sort((a, b) => a.name.localeCompare(b.name));
 
       console.log(`Found ${monstersOfType.length} monsters of type ${selectedType}`);
@@ -213,8 +387,7 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
       'Monstrosity': 'Unnatural creatures and hybrids',
       'Ooze': 'Formless, gelatinous creatures',
       'Plant': 'Animated vegetation and plant life',
-      'Undead': 'Creatures returned from death',
-      'Unknown': 'Creatures of uncertain classification'
+      'Undead': 'Creatures returned from death'
     };
     return descriptions[type] || 'Various creatures';
   };
@@ -234,8 +407,7 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
       'Monstrosity': '👾',
       'Ooze': '🟢',
       'Plant': '🌿',
-      'Undead': '💀',
-      'Unknown': '❓'
+      'Undead': '💀'
     };
     return icons[type] || '❓';
   };
@@ -261,6 +433,15 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
     );
   }
 
+  // Debug logging for render
+  console.log('Rendering BestiaryTypeList:', {
+    isLoading,
+    allMonstersCount: allMonsters.length,
+    monsterTypesCount: monsterTypes.length,
+    filteredTypesCount: filteredTypes.length,
+    bestiaryFilesCount: bestiaryFiles.length
+  });
+
   return (
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
       {/* Back button at top center */}
@@ -279,6 +460,10 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
         <p className="text-muted-foreground">Choose a creature type to browse</p>
         <p className="text-sm text-muted-foreground mt-2">
           {allMonsters.length.toLocaleString()} monsters loaded from official D&D sourcebooks
+        </p>
+        {/* Debug info */}
+        <p className="text-xs text-blue-500 mt-1">
+          Debug: {monsterTypes.length} types, {filteredTypes.length} filtered
         </p>
       </header>
 
