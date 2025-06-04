@@ -45,7 +45,7 @@ export interface Monster {
   int?: number;
   wis?: number;
   cha?: number;
-  cr: string;
+  cr: string | { cr: string; lair?: string };
   passive?: number;
   languages?: string[];
   skill?: { [key: string]: string };
