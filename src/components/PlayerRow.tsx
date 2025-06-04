@@ -140,7 +140,9 @@ export function PlayerRow({
       setIsEditingName(false);
       return;
     }
-    onNameChange(player.id, editingName.trim());
+    if (onNameChange) {
+      onNameChange(player.id, editingName.trim());
+    }
     setIsEditingName(false);
   };
 
@@ -165,7 +167,9 @@ export function PlayerRow({
       setIsEditingAc(false);
       return;
     }
-    onAcChange(player.id, newAcValue);
+    if (onAcChange) {
+      onAcChange(player.id, newAcValue);
+    }
     setIsEditingAc(false);
   };
 
@@ -190,7 +194,9 @@ export function PlayerRow({
       setIsEditingMaxHp(false);
       return;
     }
-    onMaxHpChange(player.id, newMaxHpValue);
+    if (onMaxHpChange) {
+      onMaxHpChange(player.id, newMaxHpValue);
+    }
     setIsEditingMaxHp(false);
   };
 
@@ -220,7 +226,9 @@ export function PlayerRow({
       setIsEditingCurrentHp(false);
       return;
     }
-    onCurrentHpChange(player.id, newCurrentHpValue);
+    if (onCurrentHpChange) {
+      onCurrentHpChange(player.id, newCurrentHpValue);
+    }
     setIsEditingCurrentHp(false);
   };
 
