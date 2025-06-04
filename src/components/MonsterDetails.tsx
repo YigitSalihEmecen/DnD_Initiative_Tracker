@@ -14,12 +14,20 @@ interface MonsterDetailsProps {
 
 export default function MonsterDetails({ monster, onBack, onAddMonster }: MonsterDetailsProps) {
   const formatAC = (ac: Monster['ac']): string => {
+    if (!ac && ac !== 0) return 'Unknown';
     if (typeof ac === 'number') return ac.toString();
-    if (Array.isArray(ac)) {
+    if (Array.isArray(ac) && ac.length > 0) {
       if (typeof ac[0] === 'number') return ac[0].toString();
-      if (typeof ac[0] === 'object') return `${ac[0].ac} (${ac[0].from.join(', ')})`;
+      if (typeof ac[0] === 'object' && ac[0] && typeof ac[0].ac === 'number') {
+        const fromStr = ac[0].from && ac[0].from.length > 0 ? ` (${ac[0].from.join(', ')})` : '';
+        return `${ac[0].ac}${fromStr}`;
+      }
     }
-    return '?';
+    // Fallback for any other format
+    if (typeof ac === 'object' && ac !== null && !Array.isArray(ac)) {
+      if (typeof (ac as any).ac === 'number') return (ac as any).ac.toString();
+    }
+    return 'Unknown';
   };
 
   const formatType = (type: Monster['type']): string => {
@@ -53,10 +61,21 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
     return alignment.map(a => alignmentMap[a] || a).join(' ');
   };
 
-  const formatSpeed = (speed?: { [key: string]: number }): string => {
-    if (!speed) return 'No speed data';
-    return Object.entries(speed)
-      .map(([type, value]) => `${type} ${value} ft.`)
+  const formatSpeed = (speed?: { [key: string]: number | any }): string => {
+    if (!speed || typeof speed !== 'object') return 'No speed data';
+    
+    const entries = Object.entries(speed).filter(([key, value]) => {
+      // Filter out non-numeric values and make sure we have valid speed data
+      return typeof value === 'number' && value > 0;
+    });
+    
+    if (entries.length === 0) return 'No speed data';
+    
+    return entries
+      .map(([type, value]) => {
+        const speedType = type === 'walk' ? '' : `${type} `;
+        return `${speedType}${value} ft.`;
+      })
       .join(', ');
   };
 
@@ -83,19 +102,135 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
     return 'bg-red-100 text-red-800';
   };
 
+  // Parse D&D notation and convert to styled components
+  const parseDnDText = (text: string): React.ReactNode => {
+    if (!text) return text;
+
+    // Split by D&D notation patterns, including {@h} which might be followed by numbers
+    const parts = text.split(/(\{@[^}]*\}(?:\d+)?)/g);
+    
+    return parts.map((part, index) => {
+      // Check if this part is a D&D notation (including {@h}11 pattern)
+      const match = part.match(/\{@([^}]*)\}(\d+)?/);
+      if (match) {
+        const notation = match[1];
+        const number = match[2];
+        
+        // Parse different types of notation
+        if (notation.startsWith('damage ')) {
+          const damage = notation.replace('damage ', '');
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-red-100 text-red-800 text-sm font-mono mx-1">
+              {damage}
+            </span>
+          );
+        } else if (notation.startsWith('hit ')) {
+          const hitBonus = notation.replace('hit ', '');
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-green-100 text-green-800 text-sm font-bold mx-1">
+              +{hitBonus}
+            </span>
+          );
+        } else if (notation === 'h' && number) {
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-blue-100 text-blue-800 text-sm font-bold mx-1">
+              {number}
+            </span>
+          );
+        } else if (notation.startsWith('dc ')) {
+          const dc = notation.replace('dc ', '');
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-purple-100 text-purple-800 text-sm font-bold mx-1">
+              DC {dc}
+            </span>
+          );
+        } else if (notation === 'atk mw') {
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 text-orange-800 text-xs font-semibold mx-1">
+              Melee Weapon Attack
+            </span>
+          );
+        } else if (notation === 'atk rw') {
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-orange-100 text-orange-800 text-xs font-semibold mx-1">
+              Ranged Weapon Attack
+            </span>
+          );
+        } else if (notation === 'atk rs') {
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 text-xs font-semibold mx-1">
+              Ranged Spell Attack
+            </span>
+          );
+        } else if (notation === 'atk ms') {
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-indigo-100 text-indigo-800 text-xs font-semibold mx-1">
+              Melee Spell Attack
+            </span>
+          );
+        } else if (notation.startsWith('dice ')) {
+          const dice = notation.replace('dice ', '');
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-yellow-100 text-yellow-800 text-sm font-mono mx-1">
+              {dice}
+            </span>
+          );
+        } else if (notation.startsWith('condition ')) {
+          const condition = notation.replace('condition ', '');
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-pink-100 text-pink-800 text-xs font-medium mx-1 capitalize">
+              {condition}
+            </span>
+          );
+        } else if (notation.startsWith('spell ')) {
+          const spell = notation.replace('spell ', '');
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-violet-100 text-violet-800 text-xs font-medium mx-1 italic">
+              {spell}
+            </span>
+          );
+        } else {
+          // Generic fallback for unknown notation
+          return (
+            <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-gray-100 text-gray-800 text-xs font-medium mx-1">
+              {notation}
+            </span>
+          );
+        }
+      }
+      
+      // Regular text - return as is
+      return part;
+    });
+  };
+
   const handleAddToEncounter = () => {
-    // Convert monster to Player format
-    const ac = typeof monster.ac === 'number' ? monster.ac : 
-               Array.isArray(monster.ac) ? 
-                 (typeof monster.ac[0] === 'number' ? monster.ac[0] : monster.ac[0].ac) : 
-                 10;
+    // Convert monster to Player format - use robust AC parsing
+    let ac = 10; // default fallback
+    
+    if (monster.ac) {
+      if (typeof monster.ac === 'number') {
+        ac = monster.ac;
+      } else if (Array.isArray(monster.ac) && monster.ac.length > 0) {
+        if (typeof monster.ac[0] === 'number') {
+          ac = monster.ac[0];
+        } else if (typeof monster.ac[0] === 'object' && monster.ac[0] && typeof monster.ac[0].ac === 'number') {
+          ac = monster.ac[0].ac;
+        }
+      } else if (typeof monster.ac === 'object' && monster.ac !== null && typeof (monster.ac as any).ac === 'number') {
+        ac = (monster.ac as any).ac;
+      }
+    }
+
+    // Ensure HP values are valid
+    const hp = monster.hp && typeof monster.hp.average === 'number' ? monster.hp.average : 10;
 
     const newPlayer: Player = {
       id: crypto.randomUUID(),
-      name: monster.name,
+      name: monster.name || 'Unknown Monster',
       ac: ac,
-      hp: monster.hp.average,
-      currentHp: monster.hp.average,
+      hp: hp,
+      currentHp: hp,
       initiative: 0,
     };
 
@@ -142,7 +277,7 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <p><strong>Armor Class:</strong> {formatAC(monster.ac)}</p>
-                <p><strong>Hit Points:</strong> {monster.hp.average} ({monster.hp.formula})</p>
+                <p><strong>Hit Points:</strong> {monster.hp?.average || 'Unknown'} {monster.hp?.formula ? `(${monster.hp.formula})` : ''}</p>
                 <p><strong>Speed:</strong> {formatSpeed(monster.speed)}</p>
               </div>
               <div>
@@ -223,10 +358,12 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
             <CardContent className="space-y-4">
               {monster.trait.map((trait, index) => (
                 <div key={index}>
-                  <p className="font-semibold">{trait.name}</p>
-                  <div className="text-sm text-muted-foreground">
+                  <p className="font-semibold text-base mb-2">{trait.name}</p>
+                  <div className="text-sm leading-relaxed">
                     {trait.entries.map((entry, entryIndex) => (
-                      <p key={entryIndex}>{entry}</p>
+                      <p key={entryIndex} className="mb-2">
+                        {parseDnDText(entry)}
+                      </p>
                     ))}
                   </div>
                 </div>
@@ -244,10 +381,12 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
             <CardContent className="space-y-4">
               {monster.action.map((action, index) => (
                 <div key={index}>
-                  <p className="font-semibold">{action.name}</p>
-                  <div className="text-sm text-muted-foreground">
+                  <p className="font-semibold text-base mb-2">{action.name}</p>
+                  <div className="text-sm leading-relaxed">
                     {action.entries.map((entry, entryIndex) => (
-                      <p key={entryIndex}>{entry}</p>
+                      <p key={entryIndex} className="mb-2">
+                        {parseDnDText(entry)}
+                      </p>
                     ))}
                   </div>
                 </div>

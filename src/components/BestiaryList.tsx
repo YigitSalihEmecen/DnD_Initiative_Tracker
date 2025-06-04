@@ -46,12 +46,20 @@ export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onB
   };
 
   const formatAC = (ac: Monster['ac']): string => {
+    if (!ac && ac !== 0) return 'Unknown';
     if (typeof ac === 'number') return ac.toString();
-    if (Array.isArray(ac)) {
+    if (Array.isArray(ac) && ac.length > 0) {
       if (typeof ac[0] === 'number') return ac[0].toString();
-      if (typeof ac[0] === 'object') return ac[0].ac.toString();
+      if (typeof ac[0] === 'object' && ac[0] && typeof ac[0].ac === 'number') {
+        const fromStr = ac[0].from && ac[0].from.length > 0 ? ` (${ac[0].from.join(', ')})` : '';
+        return `${ac[0].ac}${fromStr}`;
+      }
     }
-    return '?';
+    // Fallback for any other format
+    if (typeof ac === 'object' && ac !== null && !Array.isArray(ac)) {
+      if (typeof (ac as any).ac === 'number') return (ac as any).ac.toString();
+    }
+    return 'Unknown';
   };
 
   const formatType = (type: Monster['type']): string => {
@@ -63,6 +71,7 @@ export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onB
   };
 
   const formatSize = (size: string[]): string => {
+    if (!size || !Array.isArray(size)) return 'Unknown';
     const sizeMap: { [key: string]: string } = {
       'T': 'Tiny',
       'S': 'Small', 
@@ -72,6 +81,11 @@ export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onB
       'G': 'Gargantuan'
     };
     return size.map(s => sizeMap[s] || s).join(', ');
+  };
+
+  const formatHP = (hp: Monster['hp']): string => {
+    if (!hp || typeof hp.average !== 'number') return '?';
+    return hp.average.toString();
   };
 
   const getCRColor = (cr: string | { cr: string; lair?: string }): string => {
@@ -135,7 +149,7 @@ export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onB
                     </p>
                     <div className="flex flex-wrap gap-2 text-sm">
                       <span><strong>AC:</strong> {formatAC(monster.ac)}</span>
-                      <span><strong>HP:</strong> {monster.hp.average}</span>
+                      <span><strong>HP:</strong> {formatHP(monster.hp)}</span>
                       <span><strong>Source:</strong> {monster.source}</span>
                     </div>
                   </div>
