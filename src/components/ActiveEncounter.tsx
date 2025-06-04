@@ -3,6 +3,7 @@
 import { useState, type ChangeEvent, type FormEvent, useEffect } from 'react';
 import type { Player, AppStage, Encounter, Campaign, Monster } from '@/types';
 import { PlayerRow } from './PlayerRow';
+import BestiaryTypeList from './BestiaryTypeList';
 import BestiaryList from './BestiaryList';
 import MonsterDetails from './MonsterDetails';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,7 @@ interface ActiveEncounterProps {
   onExitEncounter: () => void;
 }
 
-type ViewMode = 'encounter' | 'bestiary' | 'monster-details';
+type ViewMode = 'encounter' | 'bestiary-types' | 'bestiary-list' | 'monster-details';
 
 export default function ActiveEncounter({
   encounter,
@@ -49,6 +50,8 @@ export default function ActiveEncounter({
   // Bestiary state
   const [viewMode, setViewMode] = useState<ViewMode>('encounter');
   const [selectedMonster, setSelectedMonster] = useState<Monster | null>(null);
+  const [selectedType, setSelectedType] = useState<string>('');
+  const [monstersOfType, setMonstersOfType] = useState<Monster[]>([]);
 
   const { name: encounterName, players, stage, isFinished } = encounter;
   const isReviewMode = !!isFinished;
@@ -106,24 +109,39 @@ export default function ActiveEncounter({
     setShowAddForm(false);
   };
 
-  // Placeholder function for adding from bestiary
+  // Bestiary navigation functions
   const handleAddFromBestiary = () => {
-    setViewMode('bestiary');
+    setViewMode('bestiary-types');
   };
 
-  const handleBackToBestiary = () => {
-    setSelectedMonster(null);
-    setViewMode('bestiary');
-  };
-
-  const handleBackToEncounter = () => {
-    setSelectedMonster(null);
-    setViewMode('encounter');
+  const handleSelectType = (type: string, monsters: Monster[]) => {
+    setSelectedType(type);
+    setMonstersOfType(monsters);
+    setViewMode('bestiary-list');
   };
 
   const handleSelectMonster = (monster: Monster) => {
     setSelectedMonster(monster);
     setViewMode('monster-details');
+  };
+
+  const handleBackToTypes = () => {
+    setSelectedType('');
+    setMonstersOfType([]);
+    setSelectedMonster(null);
+    setViewMode('bestiary-types');
+  };
+
+  const handleBackToList = () => {
+    setSelectedMonster(null);
+    setViewMode('bestiary-list');
+  };
+
+  const handleBackToEncounter = () => {
+    setSelectedMonster(null);
+    setSelectedType('');
+    setMonstersOfType([]);
+    setViewMode('encounter');
   };
 
   const handleAddMonsterToEncounter = (monster: Player) => {
@@ -267,22 +285,34 @@ export default function ActiveEncounter({
   const showDeleteButtonOnRow = !isReviewMode && rosterEditMode;
   const formGridColsClass = showInitiativeInputFieldInAddForm ? "md:grid-cols-5" : "md:grid-cols-4";
 
-  // Show bestiary if in bestiary mode
-  if (viewMode === 'bestiary') {
+  // Show bestiary type selection
+  if (viewMode === 'bestiary-types') {
     return (
-      <BestiaryList 
-        onSelectMonster={handleSelectMonster}
+      <BestiaryTypeList 
+        onSelectType={handleSelectType}
         onBack={handleBackToEncounter}
       />
     );
   }
 
-  // Show monster details if in monster details mode
+  // Show monsters of selected type
+  if (viewMode === 'bestiary-list') {
+    return (
+      <BestiaryList 
+        monsters={monstersOfType}
+        typeTitle={selectedType}
+        onSelectMonster={handleSelectMonster}
+        onBack={handleBackToTypes}
+      />
+    );
+  }
+
+  // Show monster details
   if (viewMode === 'monster-details' && selectedMonster) {
     return (
       <MonsterDetails 
         monster={selectedMonster}
-        onBack={handleBackToBestiary}
+        onBack={handleBackToList}
         onAddMonster={handleAddMonsterToEncounter}
       />
     );

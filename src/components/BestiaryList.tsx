@@ -9,26 +9,22 @@ import { Badge } from '@/components/ui/badge';
 import type { Monster } from '@/types';
 
 interface BestiaryListProps {
+  monsters: Monster[];
+  typeTitle: string;
   onSelectMonster: (monster: Monster) => void;
   onBack: () => void;
 }
 
-export default function BestiaryList({ onSelectMonster, onBack }: BestiaryListProps) {
-  const [monsters, setMonsters] = useState<Monster[]>([]);
+export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onBack }: BestiaryListProps) {
   const [filteredMonsters, setFilteredMonsters] = useState<Monster[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    loadMonsters();
-  }, []);
 
   useEffect(() => {
     if (searchTerm) {
       const filtered = monsters.filter(monster =>
         monster.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         monster.source.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        monster.cr.toLowerCase().includes(searchTerm.toLowerCase())
+        formatCR(monster.cr).toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredMonsters(filtered);
     } else {
@@ -36,26 +32,10 @@ export default function BestiaryList({ onSelectMonster, onBack }: BestiaryListPr
     }
   }, [searchTerm, monsters]);
 
-  const loadMonsters = async () => {
-    try {
-      setIsLoading(true);
-      // Load Monster Manual first (most common monsters)
-      const response = await fetch('/bestiary/bestiary-mm.json');
-      const data = await response.json();
-      
-      if (data.monster && Array.isArray(data.monster)) {
-        // Sort monsters alphabetically
-        const sortedMonsters = data.monster.sort((a: Monster, b: Monster) => 
-          a.name.localeCompare(b.name)
-        );
-        setMonsters(sortedMonsters);
-        setFilteredMonsters(sortedMonsters);
-      }
-    } catch (error) {
-      console.error('Error loading bestiary:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const formatCR = (cr: string | { cr: string; lair?: string }): string => {
+    if (typeof cr === 'string') return cr;
+    if (typeof cr === 'object' && cr.cr) return cr.cr;
+    return '?';
   };
 
   const formatAC = (ac: Monster['ac']): string => {
@@ -87,8 +67,9 @@ export default function BestiaryList({ onSelectMonster, onBack }: BestiaryListPr
     return size.map(s => sizeMap[s] || s).join(', ');
   };
 
-  const getCRColor = (cr: string): string => {
-    const crNum = parseFloat(cr);
+  const getCRColor = (cr: string | { cr: string; lair?: string }): string => {
+    const crString = formatCR(cr);
+    const crNum = parseFloat(crString);
     if (crNum === 0) return 'bg-gray-100 text-gray-800';
     if (crNum <= 0.5) return 'bg-green-100 text-green-800';
     if (crNum <= 2) return 'bg-blue-100 text-blue-800';
@@ -97,26 +78,6 @@ export default function BestiaryList({ onSelectMonster, onBack }: BestiaryListPr
     return 'bg-red-100 text-red-800';
   };
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
-        <div className="flex justify-center mb-8">
-          <Button 
-            onClick={onBack} 
-            className="h-12 w-12 rounded-xl bg-black text-white hover:bg-gray-800 border-0"
-            aria-label="Back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        <div className="text-center">
-          <p className="text-lg">Loading bestiary...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
       {/* Back button at top center */}
@@ -124,15 +85,18 @@ export default function BestiaryList({ onSelectMonster, onBack }: BestiaryListPr
         <Button 
           onClick={onBack} 
           className="h-12 w-12 rounded-xl bg-black text-white hover:bg-gray-800 border-0"
-          aria-label="Back"
+          aria-label="Back to types"
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
       </div>
 
       <header className="mb-8 text-center">
-        <h1 className="text-4xl font-headline font-bold">Bestiary</h1>
+        <h1 className="text-4xl font-headline font-bold">{typeTitle}</h1>
         <p className="text-muted-foreground">Choose a monster to add to your encounter</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          {monsters.length.toLocaleString()} {typeTitle.toLowerCase()} creatures
+        </p>
       </header>
 
       {/* Search */}
@@ -170,7 +134,7 @@ export default function BestiaryList({ onSelectMonster, onBack }: BestiaryListPr
                   </div>
                   <div className="ml-4 flex flex-col items-end gap-2">
                     <Badge className={`${getCRColor(monster.cr)} border-0`}>
-                      CR {monster.cr}
+                      CR {formatCR(monster.cr)}
                     </Badge>
                   </div>
                 </div>

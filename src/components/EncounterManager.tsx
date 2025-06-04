@@ -238,8 +238,10 @@ export default function EncounterManager({
                       </Button>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull;{' '}
+                  <div className="text-sm text-muted-foreground">
+                    <span>
+                      {encounter.players.length} combatant{encounter.players.length === 1 ? '' : 's'} &bull;{' '}
+                    </span>
                     {encounter.isFinished ? (
                       <Badge variant="outline" className="border-green-600 text-green-600 bg-green-500/10 hover:bg-green-500/20">Finished</Badge>
                     ) : (
@@ -247,7 +249,7 @@ export default function EncounterManager({
                         {getStageDisplay(encounter.stage)}
                       </Badge>
                     )}
-                  </p>
+                  </div>
                    {encounter.createdDate && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Created: {new Date(encounter.createdDate).toLocaleString()}
