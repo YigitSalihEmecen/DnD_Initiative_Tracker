@@ -77,15 +77,21 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
       
       const allMonsters: Monster[] = [];
       
+      // Get the base path for production (GitHub Pages)
+      const basePath = process.env.NODE_ENV === 'production' ? '/DnD_Initiative_Tracker' : '';
+      
       // Load monsters from each bestiary file
       for (const file of bestiaryFiles) {
         try {
-          const response = await fetch(`/${file}`);
+          const response = await fetch(`${basePath}/${file}`);
+          console.log(`Fetching: ${basePath}/${file} - Status: ${response.status}`);
           if (response.ok) {
             const data = await response.json();
             if (data.monster && Array.isArray(data.monster)) {
               allMonsters.push(...data.monster);
             }
+          } else {
+            console.warn(`Failed to fetch ${file}: ${response.status} ${response.statusText}`);
           }
         } catch (error) {
           console.warn(`Failed to load ${file}:`, error);
@@ -143,27 +149,40 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
   };
 
   const handleSelectType = (selectedType: string) => {
-    const monstersOfType = allMonsters.filter(monster => {
-      // Use same type extraction logic as in loadAllMonsters
-      let monsterType: string;
+    try {
+      console.log('Selecting type:', selectedType);
+      console.log('All monsters count:', allMonsters.length);
       
-      if (!monster.type) {
-        monsterType = 'Unknown';
-      } else if (typeof monster.type === 'string') {
-        monsterType = monster.type;
-      } else if (typeof monster.type === 'object' && monster.type.type) {
-        monsterType = monster.type.type;
-      } else {
-        monsterType = 'Unknown';
-      }
-      
-      // Capitalize first letter to match format
-      monsterType = monsterType.charAt(0).toUpperCase() + monsterType.slice(1).toLowerCase();
-      
-      return monsterType === selectedType;
-    }).sort((a, b) => a.name.localeCompare(b.name));
+      const monstersOfType = allMonsters.filter(monster => {
+        // Use same type extraction logic as in loadAllMonsters
+        let monsterType: string;
+        
+        if (!monster.type) {
+          monsterType = 'Unknown';
+        } else if (typeof monster.type === 'string') {
+          monsterType = monster.type;
+        } else if (typeof monster.type === 'object' && monster.type.type) {
+          monsterType = monster.type.type;
+        } else {
+          monsterType = 'Unknown';
+        }
+        
+        // Capitalize first letter to match format
+        monsterType = monsterType.charAt(0).toUpperCase() + monsterType.slice(1).toLowerCase();
+        
+        return monsterType === selectedType;
+      }).sort((a, b) => a.name.localeCompare(b.name));
 
-    onSelectType(selectedType, monstersOfType);
+      console.log(`Found ${monstersOfType.length} monsters of type ${selectedType}`);
+      
+      if (monstersOfType.length === 0) {
+        console.warn(`No monsters found for type: ${selectedType}`);
+      }
+
+      onSelectType(selectedType, monstersOfType);
+    } catch (error) {
+      console.error('Error in handleSelectType:', error);
+    }
   };
 
   const getTypeDescription = (type: string): string => {
