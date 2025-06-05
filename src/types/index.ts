@@ -5,6 +5,7 @@ export interface Player {
   hp: number;
   currentHp: number;
   initiative: number;
+  originalMonster?: Monster; // Store original monster data for bestiary creatures
 }
 
 export type AppStage =
