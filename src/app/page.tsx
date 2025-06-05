@@ -5,6 +5,7 @@ import type { Campaign } from '@/types';
 import CampaignManagerComponent from '@/components/CampaignManager';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
+import { generateId, safeLocalStorageGetItem, safeLocalStorageSetItem, safeLocalStorageRemoveItem } from '@/lib/utils';
 
 const LOCAL_STORAGE_KEY_CAMPAIGNS = 'encounterFlowApp_campaigns_v2';
 
@@ -19,8 +20,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (isClient && typeof window !== 'undefined') {
-      const storedCampaigns = localStorage.getItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
+    if (isClient) {
+      const storedCampaigns = safeLocalStorageGetItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
       if (storedCampaigns) {
         try {
           const parsedCampaigns: Campaign[] = JSON.parse(storedCampaigns).map((camp: any) => ({
@@ -43,11 +44,12 @@ export default function Home() {
             setCampaigns(parsedCampaigns.sort((a,b) => b.lastModified - a.lastModified));
           } else {
             console.warn("Stored campaigns data is malformed. Resetting.");
-            localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
+            safeLocalStorageRemoveItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
             setCampaigns([]);
           }
         } catch (error) {
-          localStorage.removeItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
+          console.warn("Failed to parse stored campaigns:", error);
+          safeLocalStorageRemoveItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
           setCampaigns([]);
         }
       }
@@ -55,18 +57,17 @@ export default function Home() {
   }, [isClient]);
 
   useEffect(() => {
-    if (isClient && typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY_CAMPAIGNS, JSON.stringify(campaigns));
-      } catch (error) {
-        console.error("Failed to save campaigns to localStorage", error);
+    if (isClient) {
+      const success = safeLocalStorageSetItem(LOCAL_STORAGE_KEY_CAMPAIGNS, JSON.stringify(campaigns));
+      if (!success) {
+        console.warn("Failed to save campaigns to localStorage");
       }
     }
   }, [campaigns, isClient]);
 
   const handleCreateCampaign = (name: string): string => {
     const newCampaign: Campaign = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: name || `Campaign ${campaigns.length + 1}`,
       encounters: [],
       lastModified: Date.now(),

@@ -20,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { generateId } from '@/lib/utils';
 
 interface ActiveEncounterProps {
   encounter: Encounter;
@@ -85,7 +86,7 @@ export default function ActiveEncounter({
     }
 
     const newPlayer: Player = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: playerName.trim(),
       ac,
       hp,
