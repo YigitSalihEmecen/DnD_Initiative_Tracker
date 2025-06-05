@@ -5,65 +5,91 @@ import type { Campaign } from '@/types';
 import CampaignManagerComponent from '@/components/CampaignManager';
 import EncounterManager from '@/components/EncounterManager';
 import ActiveEncounter from '@/components/ActiveEncounter';
-import { generateId, safeLocalStorageGetItem, safeLocalStorageSetItem, safeLocalStorageRemoveItem } from '@/lib/utils';
+import { generateId } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { dataSyncService } from '@/lib/dataSync';
 
 const LOCAL_STORAGE_KEY_CAMPAIGNS = 'encounterFlowApp_campaigns_v2';
 
 export default function Home() {
+  const { user, loading } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(null);
   const [activeEncounterId, setActiveEncounterId] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
+  // Load campaigns when component mounts or user changes
   useEffect(() => {
-    if (isClient) {
-      const storedCampaigns = safeLocalStorageGetItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
-      if (storedCampaigns) {
-        try {
-          const parsedCampaigns: Campaign[] = JSON.parse(storedCampaigns).map((camp: any) => ({
-            ...camp,
-            lastModified: camp.lastModified || Date.now(),
-            encounters: (camp.encounters || []).map((enc: any) => ({
-              ...enc,
-              lastModified: enc.lastModified || Date.now(),
-              createdDate: enc.createdDate || enc.lastModified || Date.now(),
-              isFinished: enc.isFinished || false,
-            })).sort((a: any, b: any) => b.lastModified - a.lastModified)
-          }));
-
-          if (Array.isArray(parsedCampaigns) && parsedCampaigns.every(camp =>
-              typeof camp.id === 'string' &&
-              typeof camp.name === 'string' &&
-              typeof camp.lastModified === 'number' &&
-              Array.isArray(camp.encounters)
-            )) {
-            setCampaigns(parsedCampaigns.sort((a,b) => b.lastModified - a.lastModified));
-          } else {
-            console.warn("Stored campaigns data is malformed. Resetting.");
-            safeLocalStorageRemoveItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
-            setCampaigns([]);
-          }
-        } catch (error) {
-          console.warn("Failed to parse stored campaigns:", error);
-          safeLocalStorageRemoveItem(LOCAL_STORAGE_KEY_CAMPAIGNS);
-          setCampaigns([]);
-        }
-      }
+    if (isClient && !loading) {
+      loadCampaigns();
     }
-  }, [isClient]);
+  }, [isClient, loading, user]);
 
+  // Save campaigns whenever they change
   useEffect(() => {
-    if (isClient) {
-      const success = safeLocalStorageSetItem(LOCAL_STORAGE_KEY_CAMPAIGNS, JSON.stringify(campaigns));
-      if (!success) {
-        console.warn("Failed to save campaigns to localStorage");
-      }
+    if (isClient && campaigns.length > 0) {
+      saveCampaigns();
     }
   }, [campaigns, isClient]);
+
+  const loadCampaigns = async () => {
+    setIsLoadingCampaigns(true);
+    try {
+      let loadedCampaigns: Campaign[] = [];
+      
+      if (user) {
+        // Load from cloud for logged-in users
+        loadedCampaigns = await dataSyncService.loadFromCloud();
+      } else {
+        // Load from local storage for anonymous users
+        loadedCampaigns = dataSyncService.loadLocalCampaigns();
+      }
+
+      // Validate and sanitize data
+      const validCampaigns = loadedCampaigns.map((camp: any) => ({
+        ...camp,
+        lastModified: camp.lastModified || Date.now(),
+        encounters: (camp.encounters || []).map((enc: any) => ({
+          ...enc,
+          lastModified: enc.lastModified || Date.now(),
+          createdDate: enc.createdDate || enc.lastModified || Date.now(),
+          isFinished: enc.isFinished || false,
+        })).sort((a: any, b: any) => b.lastModified - a.lastModified)
+      })).filter(camp =>
+        typeof camp.id === 'string' &&
+        typeof camp.name === 'string' &&
+        typeof camp.lastModified === 'number' &&
+        Array.isArray(camp.encounters)
+      ).sort((a, b) => b.lastModified - a.lastModified);
+
+      setCampaigns(validCampaigns);
+    } catch (error) {
+      console.error('Error loading campaigns:', error);
+      // Fallback to empty array
+      setCampaigns([]);
+    } finally {
+      setIsLoadingCampaigns(false);
+    }
+  };
+
+  const saveCampaigns = async () => {
+    try {
+      if (user) {
+        // Save to cloud for logged-in users
+        await dataSyncService.syncToCloud(campaigns);
+      } else {
+        // Save to local storage for anonymous users
+        dataSyncService.saveLocalCampaigns(campaigns);
+      }
+    } catch (error) {
+      console.error('Error saving campaigns:', error);
+    }
+  };
 
   const handleCreateCampaign = (name: string): string => {
     const newCampaign: Campaign = {
@@ -156,7 +182,7 @@ export default function Home() {
   const activeCampaign = campaigns.find(camp => camp.id === activeCampaignId);
   const activeEncounter = activeCampaign?.encounters.find(enc => enc.id === activeEncounterId);
 
-  if (!isClient) {
+  if (!isClient || loading || isLoadingCampaigns) {
     return (
       <main className="flex-grow container mx-auto p-4 md:p-8 font-code flex justify-center items-center">
         <div className="text-center">
@@ -164,7 +190,9 @@ export default function Home() {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <p className="text-muted-foreground">Loading EncounterFlow...</p>
+          <p className="text-muted-foreground">
+            {loading ? 'Loading EncounterFlow...' : isLoadingCampaigns ? 'Syncing campaigns...' : 'Loading EncounterFlow...'}
+          </p>
         </div>
       </main>
     );
@@ -178,7 +206,8 @@ export default function Home() {
         onSelectCampaign={handleSelectCampaign}
         onDeleteCampaign={handleDeleteCampaign}
         onDeleteAllCampaigns={handleDeleteAllCampaigns}
-        onUpdateCampaign={handleUpdateCampaign} 
+        onUpdateCampaign={handleUpdateCampaign}
+        user={user}
       />
     );
   }
