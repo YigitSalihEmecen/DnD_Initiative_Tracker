@@ -5,7 +5,10 @@ import { useState, type FormEvent, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil, XSquare, FilePlus } from 'lucide-react';
+import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil, XSquare, FilePlus, LogIn, LogOut, User, Cloud, CloudOff, Wifi, WifiOff } from 'lucide-react';
+import { signInWithGoogle, signOutUser } from '@/lib/auth';
+import { useAuth } from '@/contexts/AuthContext';
+import { isFirebaseConfigured } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
 import {
   AlertDialog,
@@ -26,6 +29,7 @@ interface CampaignManagerProps {
   onDeleteCampaign: (id: string) => void;
   onDeleteAllCampaigns: () => void;
   onUpdateCampaign: (updatedCampaign: Campaign) => void; // For name edits
+  user: import('@/types').User | null;
 }
 
 export default function CampaignManagerComponent({
@@ -35,9 +39,12 @@ export default function CampaignManagerComponent({
   onDeleteCampaign,
   onDeleteAllCampaigns,
   onUpdateCampaign,
+  user,
 }: CampaignManagerProps) {
+  const { syncStatus } = useAuth();
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [newCampaignName, setNewCampaignName] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
   const [dialogCampaignNameForEdit, setDialogCampaignNameForEdit] = useState('');
@@ -89,6 +96,25 @@ export default function CampaignManagerComponent({
     setIsCampaignEditMode(prev => !prev);
   };
 
+  const handleGoogleLogin = async () => {
+    setIsLoggingIn(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      console.error('Login failed:', error);
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOutUser();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   if (!isClient) {
     return (
       <div className="container mx-auto p-4 md:p-8 font-code flex justify-center items-center min-h-[calc(100vh-10rem)]">
@@ -103,6 +129,102 @@ export default function CampaignManagerComponent({
         <h1 className="text-5xl font-headline font-bold tracking-tight">EncounterFlow</h1>
         <p className="text-xl text-muted-foreground mt-2">Your D&amp;D Campaign & Encounter Command Center</p>
       </header>
+
+      {/* User Status & Sync Information */}
+      <Card className="border-2 bg-gradient-to-br from-primary/5 to-secondary/5">
+        <CardContent className="pt-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {user ? (
+                <>
+                  <div className="flex items-center gap-2 text-primary">
+                    <User size={20} />
+                    <span className="font-medium">{user.displayName || user.email}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    {syncStatus.isOnline ? (
+                      <div className="flex items-center gap-1 text-green-600">
+                        <Cloud size={14} />
+                        <span>Cloud Sync Enabled</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-orange-600">
+                        <CloudOff size={14} />
+                        <span>Offline Mode</span>
+                      </div>
+                    )}
+                    {syncStatus.isSyncing && (
+                      <span className="ml-2 text-blue-600">Syncing...</span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <User size={20} />
+                  <span>Guest User (Local Storage Only)</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {user ? (
+                <Button onClick={handleLogout} variant="outline" size="sm">
+                  <LogOut className="mr-2" size={16} />
+                  Sign Out
+                </Button>
+              ) : (
+                <Button 
+                  onClick={handleGoogleLogin} 
+                  disabled={isLoggingIn || !isFirebaseConfigured()}
+                  className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                  size="sm"
+                >
+                  {isLoggingIn ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full" />
+                      Signing In...
+                    </div>
+                  ) : !isFirebaseConfigured() ? (
+                    <>
+                      <LogIn className="mr-2" size={16} />
+                      Setup Required
+                    </>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2" size={16} />
+                      Sign In with Google
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          {!user && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                {!isFirebaseConfigured() ? (
+                  <>
+                    <strong>🔧 Firebase Setup Required:</strong> Configure Firebase to enable Google sign-in and cloud sync. See FIREBASE_SETUP.md for instructions.
+                  </>
+                ) : (
+                  <>
+                    <strong>💡 Sign in to enable cloud sync!</strong> Your campaigns will be saved across all your devices and backed up automatically.
+                  </>
+                )}
+              </p>
+            </div>
+          )}
+
+          {syncStatus.syncError && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">
+                <strong>⚠️ Sync Error:</strong> {syncStatus.syncError}
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
       <Button onClick={handleOpenCreateDialog} size="lg" className="h-12 text-lg px-8 w-full">
         <FilePlus className="mr-2" /> Create New Campaign
