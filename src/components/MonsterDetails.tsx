@@ -233,6 +233,7 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
       hp: hp,
       currentHp: hp,
       initiative: 0,
+      originalMonster: monster, // Store original monster data for the info button
     };
 
     onAddMonster(newPlayer);

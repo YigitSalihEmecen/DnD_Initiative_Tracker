@@ -5,9 +5,10 @@ import { useState, type ChangeEvent, type FormEvent, useEffect, type KeyboardEve
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, MinusCircle, Skull, Trash2 } from 'lucide-react';
+import { CheckCircle, MinusCircle, Skull, Trash2, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { getStageBadgeClass } from '@/lib/ui-utils';
+import MonsterInfoDialog from './MonsterInfoDialog';
 
 interface PlayerRowProps {
   player: Player;
@@ -61,6 +62,7 @@ export function PlayerRow({
   const [isEditingAc, setIsEditingAc] = useState(false);
   const [isEditingMaxHp, setIsEditingMaxHp] = useState(false);
   const [isEditingCurrentHp, setIsEditingCurrentHp] = useState(false);
+  const [isMonsterInfoOpen, setIsMonsterInfoOpen] = useState(false);
 
   useEffect(() => {
     setInitiativeInput(
@@ -260,17 +262,30 @@ export function PlayerRow({
               <Skull size={18} className="ml-auto text-destructive shrink-0" aria-label="Downed" />
             )}
           </CardTitle>
-          {!isReviewMode && showDeleteButton && onInitiateDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleDeleteClick}
-              className="text-destructive hover:bg-destructive/10 h-8 w-8 ml-2 shrink-0"
-              aria-label={`Remove ${player.name}`}
-            >
-              <Trash2 size={18} />
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {player.originalMonster && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMonsterInfoOpen(true)}
+                className="text-primary hover:bg-primary/10 h-8 w-8 shrink-0"
+                aria-label={`View ${player.name} details`}
+              >
+                <Info size={18} />
+              </Button>
+            )}
+            {!isReviewMode && showDeleteButton && onInitiateDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleDeleteClick}
+                className="text-destructive hover:bg-destructive/10 h-8 w-8 shrink-0"
+                aria-label={`Remove ${player.name}`}
+              >
+                <Trash2 size={18} />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-2 md:gap-4 items-center pb-4">
@@ -410,6 +425,13 @@ export function PlayerRow({
           </div>
         )}
       </CardContent>
+      
+      {/* Monster Info Dialog */}
+      <MonsterInfoDialog
+        monster={player.originalMonster || null}
+        isOpen={isMonsterInfoOpen}
+        onClose={() => setIsMonsterInfoOpen(false)}
+      />
     </Card>
   );
 }
