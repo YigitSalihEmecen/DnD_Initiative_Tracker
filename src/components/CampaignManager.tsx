@@ -182,7 +182,7 @@ export default function CampaignManagerComponent({
                   <p className="text-sm text-muted-foreground">
                     {campaign.encounters.length} encounter{campaign.encounters.length === 1 ? '' : 's'}
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1" suppressHydrationWarning>
                     Last updated: {campaign.lastModified ? formatDistanceToNow(new Date(campaign.lastModified), { addSuffix: true }) : 'N/A'}
                   </p>
                 </div>

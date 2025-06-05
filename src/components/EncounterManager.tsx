@@ -21,6 +21,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import ActiveEncounter from './ActiveEncounter';
+import { generateId } from '@/lib/utils';
 
 
 interface EncounterManagerProps {
@@ -60,7 +61,7 @@ export default function EncounterManager({
       return;
     }
     const newEncounter: Encounter = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: newEncounterName.trim() || `Encounter ${campaign.encounters.length + 1}`,
       players: [],
       stage: 'PLAYER_SETUP',
@@ -251,11 +252,11 @@ export default function EncounterManager({
                     )}
                   </div>
                    {encounter.createdDate && (
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-muted-foreground mt-1" suppressHydrationWarning>
                       Created: {new Date(encounter.createdDate).toLocaleString()}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs text-muted-foreground mt-1" suppressHydrationWarning>
                     Last updated: {encounter.lastModified ? formatDistanceToNow(new Date(encounter.lastModified), { addSuffix: true }) : 'N/A'}
                   </p>
                 </div>

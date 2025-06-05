@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus } from 'lucide-react';
 import type { Player, Monster } from '@/types';
+import { generateId } from '@/lib/utils';
 
 interface MonsterDetailsProps {
   monster: Monster;
@@ -226,7 +227,7 @@ export default function MonsterDetails({ monster, onBack, onAddMonster }: Monste
     const hp = monster.hp && typeof monster.hp.average === 'number' ? monster.hp.average : 10;
 
     const newPlayer: Player = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: monster.name || 'Unknown Monster',
       ac: ac,
       hp: hp,
