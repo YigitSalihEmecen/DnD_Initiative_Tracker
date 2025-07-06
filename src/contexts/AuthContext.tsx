@@ -37,6 +37,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const initAuth = async () => {
       try {
+        // Check for auth URL parameter (from system browser)
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('auth') === 'google') {
+            console.log('Auth parameter detected, attempting Google sign-in');
+            // Clear the URL parameter
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        }
+
         // Handle redirect result first (for WebView)
         const redirectUser = await handleRedirectResult();
         if (redirectUser && mounted) {
