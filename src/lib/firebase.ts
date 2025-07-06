@@ -17,19 +17,7 @@ const firebaseConfig = {
 const isFirebaseConfigured = () => {
   return firebaseConfig.apiKey && 
          firebaseConfig.projectId &&
-         firebaseConfig.apiKey !== 'fake-api-key' &&
          firebaseConfig.apiKey.startsWith('AIza');
-};
-
-// Detect deployment environment
-const isGitHubPages = () => {
-  if (typeof window === 'undefined') return false;
-  return window.location.hostname.includes('github.io');
-};
-
-const isLocalhost = () => {
-  if (typeof window === 'undefined') return false;
-  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 };
 
 // Initialize Firebase only if it hasn't been initialized yet and only in browser environment
@@ -51,42 +39,19 @@ if (typeof window !== 'undefined') {
       // Initialize Analytics (only in browser and when Firebase is configured)
       try {
         analytics = getAnalytics(app);
-        console.log('Firebase Analytics initialized successfully');
       } catch (error) {
         console.warn('Analytics initialization failed:', error);
       }
       
-      // Google Auth Provider with enhanced configuration
+      // Google Auth Provider
       googleProvider = new GoogleAuthProvider();
       googleProvider.addScope('email');
       googleProvider.addScope('profile');
-      
-             // Configure for different environments
-       if (isGitHubPages()) {
-         // GitHub Pages specific configuration
-         googleProvider.setCustomParameters({
-           prompt: 'select_account'
-         });
-         console.log('Firebase configured for GitHub Pages deployment');
-      } else if (isLocalhost()) {
-        // Localhost specific configuration
-        googleProvider.setCustomParameters({
-          prompt: 'select_account'
-        });
-        console.log('Firebase configured for localhost development');
-      } else {
-        // Production configuration
-        googleProvider.setCustomParameters({
-          prompt: 'select_account'
-        });
-        console.log('Firebase configured for production');
-      }
-      
-      console.log('Firebase initialized successfully:', {
-        projectId: firebaseConfig.projectId,
-        authDomain: firebaseConfig.authDomain,
-        environment: isGitHubPages() ? 'GitHub Pages' : isLocalhost() ? 'Localhost' : 'Production'
+      googleProvider.setCustomParameters({
+        prompt: 'select_account'
       });
+      
+      console.log('Firebase initialized successfully');
     } else {
       console.warn('Firebase not properly configured, running in offline mode');
     }

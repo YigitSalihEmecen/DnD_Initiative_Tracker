@@ -68,7 +68,8 @@ export const handleRedirectResult = async (): Promise<User | null> => {
     return null;
   } catch (error) {
     console.error('Error handling redirect result:', error);
-    throw error;
+    // Don't throw here, just return null
+    return null;
   }
 };
 
@@ -88,7 +89,7 @@ export const signOutUser = async (): Promise<void> => {
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
   if (!auth) {
     // If Firebase isn't configured, call callback with null user immediately
-    callback(null);
+    setTimeout(() => callback(null), 0);
     return () => {}; // Return empty unsubscribe function
   }
   
