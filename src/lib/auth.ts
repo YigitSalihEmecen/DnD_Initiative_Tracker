@@ -36,7 +36,7 @@ export const convertFirebaseUser = (firebaseUser: FirebaseUser | null): User | n
 
 // Sign in with Google - WebView compatible
 export const signInWithGoogle = async (): Promise<User | null> => {
-  if (!isFirebaseConfigured()) {
+  if (!isFirebaseConfigured() || !auth || !googleProvider) {
     throw new Error('Firebase is not properly configured. Please check your environment variables.');
   }
 
@@ -58,6 +58,8 @@ export const signInWithGoogle = async (): Promise<User | null> => {
 
 // Handle redirect result for WebView
 export const handleRedirectResult = async (): Promise<User | null> => {
+  if (!auth) return null;
+  
   try {
     const result = await getRedirectResult(auth);
     if (result) {
@@ -72,6 +74,8 @@ export const handleRedirectResult = async (): Promise<User | null> => {
 
 // Sign out
 export const signOutUser = async (): Promise<void> => {
+  if (!auth) return;
+  
   try {
     await signOut(auth);
   } catch (error) {
@@ -82,6 +86,12 @@ export const signOutUser = async (): Promise<void> => {
 
 // Auth state listener
 export const onAuthStateChange = (callback: (user: User | null) => void) => {
+  if (!auth) {
+    // If Firebase isn't configured, call callback with null user immediately
+    callback(null);
+    return () => {}; // Return empty unsubscribe function
+  }
+  
   return onAuthStateChanged(auth, (firebaseUser) => {
     const user = convertFirebaseUser(firebaseUser);
     callback(user);
@@ -90,5 +100,6 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
 
 // Get current user
 export const getCurrentUser = (): User | null => {
+  if (!auth) return null;
   return convertFirebaseUser(auth.currentUser);
 }; 
