@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { FolderPlus, PlayCircle, Trash2, Edit3, ListChecks, FolderKanban, Pencil, XSquare, FilePlus, LogIn, LogOut, User, Cloud, CloudOff, Wifi, WifiOff } from 'lucide-react';
-import { signInWithGoogle, signOutUser } from '@/lib/auth';
+import { signInWithGoogle, signOutUser, isWebView } from '@/lib/auth';
 import { useAuth } from '@/contexts/AuthContext';
 import { isFirebaseConfigured } from '@/lib/firebase';
 import { formatDistanceToNow } from 'date-fns';
@@ -102,7 +102,15 @@ export default function CampaignManagerComponent({
     } catch (error) {
       console.error('Login failed:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      alert(`Login failed: ${errorMessage}`);
+      
+      // Show user-friendly message for WebView issues
+      if (errorMessage.includes('browser that just opened')) {
+        alert('Authentication will open in your browser. Please sign in there and return to the app when complete.');
+      } else if (errorMessage.includes('disallowed_useragent') || errorMessage.includes('secure browsers')) {
+        alert('For security, Google requires authentication in your default browser. A browser window will open for sign-in.');
+      } else {
+        alert(`Login failed: ${errorMessage}`);
+      }
     } finally {
       setIsLoggingIn(false);
     }
@@ -207,6 +215,10 @@ export default function CampaignManagerComponent({
                 {!isFirebaseConfigured() ? (
                   <>
                     <strong>🔧 Firebase Setup Required:</strong> Configure Firebase to enable Google sign-in and cloud sync. See FIREBASE_SETUP.md for instructions.
+                  </>
+                ) : isWebView() ? (
+                  <>
+                    <strong>📱 Mobile App Authentication:</strong> Sign-in will open in your device's browser for security. After signing in, return to this app to sync your campaigns.
                   </>
                 ) : (
                   <>
