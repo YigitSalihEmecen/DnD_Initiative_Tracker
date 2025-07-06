@@ -56,8 +56,10 @@ if (typeof window !== 'undefined') {
       console.warn('Firebase not properly configured, running in offline mode');
     }
   } catch (error) {
-    console.warn('Firebase initialization failed, running in offline mode:', error);
+    console.error('Firebase initialization failed, running in offline mode:', error);
   }
+} else {
+  console.log('🖥️ Running in server environment - Firebase will be initialized client-side');
 }
 
 export { auth, db, analytics, googleProvider, isFirebaseConfigured };

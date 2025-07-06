@@ -42,58 +42,57 @@ export default function CampaignManagerComponent({
   user,
 }: CampaignManagerProps) {
   const { syncStatus } = useAuth();
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [newCampaignName, setNewCampaignName] = useState('');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   
+  // Campaign editing states
   const [editingCampaignId, setEditingCampaignId] = useState<string | null>(null);
-  const [dialogCampaignNameForEdit, setDialogCampaignNameForEdit] = useState('');
-  const [isCampaignEditMode, setIsCampaignEditMode] = useState(false);
-
-  const [isClient, setIsClient] = useState(false);
+  const [editName, setEditName] = useState('');
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const handleCreateCampaign = (e: FormEvent) => {
+    e.preventDefault();
+    const trimmedName = newCampaignName.trim();
+    if (trimmedName) {
+      onCreateCampaign(trimmedName);
+      setNewCampaignName('');
+      setIsCreateDialogOpen(false);
+    }
+  };
 
   const handleOpenCreateDialog = () => {
     setNewCampaignName('');
     setIsCreateDialogOpen(true);
   };
 
-  const handleConfirmCreateCampaign = () => {
-    if (!newCampaignName.trim()) {
-      return;
-    }
-    const newId = onCreateCampaign(newCampaignName);
-    onSelectCampaign(newId);
-    setIsCreateDialogOpen(false);
-  };
-
-  const handleOpenEditDialog = (campaign: Campaign) => {
+  const handleStartEditing = (campaign: Campaign) => {
     setEditingCampaignId(campaign.id);
-    setDialogCampaignNameForEdit(campaign.name);
+    setEditName(campaign.name);
   };
 
-  const handleConfirmEditCampaignName = () => {
-    if (!editingCampaignId || !dialogCampaignNameForEdit.trim()) {
-      return;
-    }
-    const campaignToUpdate = campaigns.find(c => c.id === editingCampaignId);
-    if (campaignToUpdate) {
-      const updatedCampaign = { 
-        ...campaignToUpdate, 
-        name: dialogCampaignNameForEdit.trim(),
-        lastModified: Date.now()
-      };
-      onUpdateCampaign(updatedCampaign);
+  const handleSaveEdit = () => {
+    if (editingCampaignId && editName.trim()) {
+      const campaignToUpdate = campaigns.find(c => c.id === editingCampaignId);
+      if (campaignToUpdate) {
+        onUpdateCampaign({
+          ...campaignToUpdate,
+          name: editName.trim(),
+          lastModified: Date.now()
+        });
+      }
     }
     setEditingCampaignId(null);
-    setDialogCampaignNameForEdit('');
+    setEditName('');
   };
 
-  const handleToggleCampaignEditMode = () => {
-    setIsCampaignEditMode(prev => !prev);
+  const handleCancelEdit = () => {
+    setEditingCampaignId(null);
+    setEditName('');
   };
 
   const handleGoogleLogin = async () => {
@@ -102,6 +101,8 @@ export default function CampaignManagerComponent({
       await signInWithGoogle();
     } catch (error) {
       console.error('Login failed:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`Login failed: ${errorMessage}`);
     } finally {
       setIsLoggingIn(false);
     }
@@ -250,7 +251,7 @@ export default function CampaignManagerComponent({
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCreateCampaign}>Create & Open Campaign</AlertDialogAction>
+            <AlertDialogAction onClick={handleCreateCampaign}>Create & Open Campaign</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -267,19 +268,18 @@ export default function CampaignManagerComponent({
           <div className="space-y-4 py-4">
             <Input
               placeholder="New campaign name"
-              value={dialogCampaignNameForEdit}
-              onChange={(e) => setDialogCampaignNameForEdit(e.target.value)}
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
               aria-label="Edit Campaign Name"
               className="text-base p-3 h-12"
             />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setEditingCampaignId(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmEditCampaignName}>Save Name</AlertDialogAction>
+            <AlertDialogCancel onClick={handleCancelEdit}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleSaveEdit}>Save Name</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
 
       <Card className="shadow-lg">
         <CardHeader>
@@ -295,8 +295,8 @@ export default function CampaignManagerComponent({
                 <div className="flex-grow">
                   <div className="flex items-center gap-2">
                     <h3 className="text-xl font-semibold text-primary">{campaign.name}</h3>
-                    {isCampaignEditMode && (
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditDialog(campaign)} className="h-7 w-7 text-muted-foreground hover:text-primary">
+                    {editingCampaignId === campaign.id && (
+                      <Button variant="ghost" size="icon" onClick={() => handleStartEditing(campaign)} className="h-7 w-7 text-muted-foreground hover:text-primary">
                         <Pencil size={16} />
                       </Button>
                     )}
@@ -309,12 +309,12 @@ export default function CampaignManagerComponent({
                   </p>
                 </div>
                 <div className="flex gap-2 mt-2 sm:mt-0 shrink-0">
-                  {!isCampaignEditMode && (
+                  {!editingCampaignId && (
                     <Button onClick={() => onSelectCampaign(campaign.id)} variant="outline" size="sm" className="border-primary text-primary hover:bg-primary/10">
                       <PlayCircle className="mr-2" /> Manage Encounters
                     </Button>
                   )}
-                  {isCampaignEditMode && (
+                  {editingCampaignId === campaign.id && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -346,7 +346,7 @@ export default function CampaignManagerComponent({
              <p className="text-muted-foreground text-center py-4 text-lg">Start by creating a campaign!</p>
           )}
         </CardContent>
-        {campaigns.length > 0 && isCampaignEditMode && (
+        {campaigns.length > 0 && editingCampaignId && (
           <CardFooter className="p-4 border-t border-border">
              <AlertDialog>
                 <AlertDialogTrigger asChild>
@@ -385,12 +385,6 @@ export default function CampaignManagerComponent({
             </CardContent>
         </Card>
        )}
-      <div className="mt-12 text-center flex flex-col sm:flex-row justify-center items-center gap-4">
-        <Button onClick={handleToggleCampaignEditMode} variant="outline">
-          {isCampaignEditMode ? <XSquare className="mr-2 h-4 w-4" /> : <Edit3 className="mr-2 h-4 w-4" />}
-          {isCampaignEditMode ? 'Done Editing' : 'Edit Campaigns'}
-        </Button>
-      </div>
     </div>
   );
 }
