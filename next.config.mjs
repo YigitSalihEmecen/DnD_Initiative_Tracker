@@ -20,4 +20,4 @@ const nextConfig = {
   },
 }
 
-export default nextConfig 
+export default nextConfig // Test change to trigger fresh deployment
