@@ -35,18 +35,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
-    // Handle redirect result first (for WebView)
-    const handleRedirect = async () => {
+    const initAuth = async () => {
       try {
+        // Handle redirect result first (for WebView)
         const redirectUser = await handleRedirectResult();
         if (redirectUser && mounted) {
           setUser(redirectUser);
           dataSyncService.setUser(redirectUser);
         }
+
+        // Check for current user
+        const currentUser = getCurrentUser();
+        if (currentUser && mounted) {
+          setUser(currentUser);
+          dataSyncService.setUser(currentUser);
+        }
       } catch (err) {
-        console.error('Error handling redirect:', err);
+        console.error('Error in auth initialization:', err);
         if (mounted) {
           setError(err instanceof Error ? err.message : 'Authentication error');
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
         }
       }
     };
@@ -56,22 +67,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (mounted) {
         setUser(authUser);
         dataSyncService.setUser(authUser);
-        setLoading(false);
         setError(null);
       }
     });
 
-    // Check for redirect result and current user
-    handleRedirect().then(() => {
-      if (mounted) {
-        const currentUser = getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          dataSyncService.setUser(currentUser);
-        }
+    // Initialize auth with timeout fallback
+    const authTimeout = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth initialization timeout, proceeding without authentication');
         setLoading(false);
       }
-    });
+    }, 5000); // 5 second timeout
+
+    initAuth();
 
     // Sync status updates
     const syncStatusInterval = setInterval(() => {
@@ -82,6 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return () => {
       mounted = false;
+      clearTimeout(authTimeout);
       unsubscribe();
       clearInterval(syncStatusInterval);
     };
