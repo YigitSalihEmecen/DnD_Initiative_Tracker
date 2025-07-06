@@ -4,20 +4,32 @@ import { getFirestore } from 'firebase/firestore';
 import { getAnalytics, Analytics } from 'firebase/analytics';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'fake-api-key',
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'fake-project.firebaseapp.com',
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'fake-project-id',
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'fake-project.appspot.com',
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '123456789',
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || 'fake-app-id',
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'fake-measurement-id'
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyD0Jw9TdyBMUVwfHLyTHE09dNZkVFn7yrI',
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'encountertracker-13662.firebaseapp.com',
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'encountertracker-13662',
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'encountertracker-13662.firebasestorage.app',
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '975572155272',
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '1:975572155272:web:57fdbde866e8ff83ae8b9b',
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || 'G-9XZTDK90WF'
 };
 
 // Check if Firebase is properly configured
 const isFirebaseConfigured = () => {
-  return process.env.NEXT_PUBLIC_FIREBASE_API_KEY && 
-         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID &&
-         process.env.NEXT_PUBLIC_FIREBASE_API_KEY !== 'fake-api-key';
+  return firebaseConfig.apiKey && 
+         firebaseConfig.projectId &&
+         firebaseConfig.apiKey !== 'fake-api-key' &&
+         firebaseConfig.apiKey.startsWith('AIza');
+};
+
+// Detect deployment environment
+const isGitHubPages = () => {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname.includes('github.io');
+};
+
+const isLocalhost = () => {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 };
 
 // Initialize Firebase only if it hasn't been initialized yet and only in browser environment
@@ -39,19 +51,44 @@ if (typeof window !== 'undefined') {
       // Initialize Analytics (only in browser and when Firebase is configured)
       try {
         analytics = getAnalytics(app);
+        console.log('Firebase Analytics initialized successfully');
       } catch (error) {
         console.warn('Analytics initialization failed:', error);
       }
       
-      // Google Auth Provider
+      // Google Auth Provider with enhanced configuration
       googleProvider = new GoogleAuthProvider();
       googleProvider.addScope('email');
       googleProvider.addScope('profile');
       
-      // Configure for WebView compatibility
-      googleProvider.setCustomParameters({
-        prompt: 'select_account'
+             // Configure for different environments
+       if (isGitHubPages()) {
+         // GitHub Pages specific configuration
+         googleProvider.setCustomParameters({
+           prompt: 'select_account'
+         });
+         console.log('Firebase configured for GitHub Pages deployment');
+      } else if (isLocalhost()) {
+        // Localhost specific configuration
+        googleProvider.setCustomParameters({
+          prompt: 'select_account'
+        });
+        console.log('Firebase configured for localhost development');
+      } else {
+        // Production configuration
+        googleProvider.setCustomParameters({
+          prompt: 'select_account'
+        });
+        console.log('Firebase configured for production');
+      }
+      
+      console.log('Firebase initialized successfully:', {
+        projectId: firebaseConfig.projectId,
+        authDomain: firebaseConfig.authDomain,
+        environment: isGitHubPages() ? 'GitHub Pages' : isLocalhost() ? 'Localhost' : 'Production'
       });
+    } else {
+      console.warn('Firebase not properly configured, running in offline mode');
     }
   } catch (error) {
     console.warn('Firebase initialization failed, running in offline mode:', error);
