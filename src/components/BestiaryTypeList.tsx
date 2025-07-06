@@ -116,7 +116,6 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
          }
        }
       
-      console.log(`Discovered ${existingFiles.length} bestiary files`);
       setBestiaryFiles(existingFiles);
          } catch (error) {
        console.error('Error discovering bestiary files:', error);
@@ -134,7 +133,6 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
   const loadAllMonsters = async () => {
     try {
       setIsLoading(true);
-      console.log('Loading monsters from all bestiary files...');
       
       const allMonsters: Monster[] = [];
       
@@ -145,7 +143,6 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
       for (const file of bestiaryFiles) {
         try {
           const response = await fetch(`${basePath}/${file}`);
-          console.log(`Fetching: ${basePath}/${file} - Status: ${response.status}`);
           if (response.ok) {
             const data = await response.json();
             if (data.monster && Array.isArray(data.monster)) {
@@ -160,11 +157,9 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
         }
       }
       
-      console.log(`Loaded ${allMonsters.length} total monsters`);
       setAllMonsters(allMonsters);
       
       // Group monsters by type with proper null checks
-      console.log('Starting type grouping...');
       const typeGroups: { [key: string]: Monster[] } = {};
       
       allMonsters.forEach((monster, index) => {
@@ -226,8 +221,6 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
         }
       });
       
-      console.log(`Grouped into ${Object.keys(typeGroups).length} types`);
-      
       // Convert to type data with descriptions and icons
       const types: MonsterTypeData[] = Object.entries(typeGroups).map(([type, monsters]) => ({
         type,
@@ -236,15 +229,11 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
         icon: getTypeIcon(type)
       }));
       
-      console.log('Created type data array:', types.length);
-      
       // Sort by count (most common types first)
       types.sort((a, b) => b.count - a.count);
       
-      console.log('Setting monster types and filtered types...');
       setMonsterTypes(types);
       setFilteredTypes(types);
-      console.log('Type data set successfully');
     } catch (error) {
       console.error('Error loading bestiary data:', error);
     } finally {
@@ -294,9 +283,6 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
 
   const handleSelectType = (selectedType: string) => {
     try {
-      console.log('Selecting type:', selectedType);
-      console.log('All monsters count:', allMonsters.length);
-      
       // Safety check - ensure we have monsters loaded
       if (!allMonsters || allMonsters.length === 0) {
         console.error('No monsters loaded yet, cannot filter by type');
@@ -358,12 +344,6 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
           size: cleanArrayProperty(monster.size)
         };
       }).sort((a, b) => a.name.localeCompare(b.name));
-
-      console.log(`Found ${monstersOfType.length} monsters of type ${selectedType}`);
-      
-      if (monstersOfType.length === 0) {
-        console.warn(`No monsters found for type: ${selectedType}`);
-      }
 
       onSelectType(selectedType, monstersOfType);
     } catch (error) {
@@ -433,14 +413,7 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
     );
   }
 
-  // Debug logging for render
-  console.log('Rendering BestiaryTypeList:', {
-    isLoading,
-    allMonstersCount: allMonsters.length,
-    monsterTypesCount: monsterTypes.length,
-    filteredTypesCount: filteredTypes.length,
-    bestiaryFilesCount: bestiaryFiles.length
-  });
+
 
   return (
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
@@ -460,10 +433,6 @@ export default function BestiaryTypeList({ onSelectType, onBack }: BestiaryTypeL
         <p className="text-muted-foreground">Choose a creature type to browse</p>
         <p className="text-sm text-muted-foreground mt-2">
           {allMonsters.length.toLocaleString()} monsters loaded from official D&D sourcebooks
-        </p>
-        {/* Debug info */}
-        <p className="text-xs text-blue-500 mt-1">
-          Debug: {monsterTypes.length} types, {filteredTypes.length} filtered
         </p>
       </header>
 
