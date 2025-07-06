@@ -5,8 +5,8 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  basePath: process.env.NODE_ENV === 'production' ? '/D-D-Initiative-Tracker' : '',
-  assetPrefix: process.env.NODE_ENV === 'production' ? '/D-D-Initiative-Tracker' : '',
+  basePath: process.env.NODE_ENV === 'production' ? '/DnD_Initiative_Tracker' : '',
+  assetPrefix: process.env.NODE_ENV === 'production' ? '/DnD_Initiative_Tracker' : '',
   
   // Always embed Firebase credentials for GitHub Pages
   env: {
