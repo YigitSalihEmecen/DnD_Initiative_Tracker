@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Search } from 'lucide-react';
+import { ArrowLeft, Search, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import type { Monster } from '@/types';
 
@@ -13,14 +13,22 @@ interface BestiaryListProps {
   typeTitle: string;
   onSelectMonster: (monster: Monster) => void;
   onBack: () => void;
+  isLoading?: boolean;
 }
 
-export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onBack }: BestiaryListProps) {
+export default function BestiaryList({ 
+  monsters, 
+  typeTitle, 
+  onSelectMonster, 
+  onBack, 
+  isLoading = false 
+}: BestiaryListProps) {
   const [filteredMonsters, setFilteredMonsters] = useState<Monster[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     // Initialize filtered monsters when monsters prop changes
+    setFilteredMonsters(monsters);
   }, [monsters, typeTitle]);
 
   useEffect(() => {
@@ -96,6 +104,39 @@ export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onB
     return 'bg-red-100 text-red-800';
   };
 
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
+        {/* Back button at top center */}
+        <div className="flex justify-center mb-8">
+          <Button 
+            onClick={onBack} 
+            className="h-12 w-12 rounded-xl bg-black text-white hover:bg-gray-800 border-0"
+            aria-label="Back to types"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <header className="mb-8 text-center">
+          <h1 className="text-4xl font-headline font-bold">{typeTitle}</h1>
+          <p className="text-muted-foreground">Loading creatures...</p>
+        </header>
+
+        <div className="text-center py-16">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <span className="text-lg">Loading {typeTitle.toLowerCase()} creatures...</span>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Fetching monsters from sourcebooks
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-4 md:p-8 flex-grow font-code animate-fade-in">
       {/* Back button at top center */}
@@ -113,24 +154,33 @@ export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onB
         <h1 className="text-4xl font-headline font-bold">{typeTitle}</h1>
         <p className="text-muted-foreground">Choose a monster to add to your encounter</p>
         <p className="text-sm text-muted-foreground mt-2">
-          {monsters.length.toLocaleString()} {typeTitle.toLowerCase()} creatures
+          {monsters.length.toLocaleString()} {typeTitle.toLowerCase()} creatures available
         </p>
       </header>
 
-      {/* Search */}
-      <div className="mb-6 relative">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search monsters by name, source, or challenge rating..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 h-12 text-base"
-        />
-      </div>
+      {/* Show search only if we have monsters */}
+      {monsters.length > 0 && (
+        <div className="mb-6 relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search monsters by name, source, or challenge rating..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 h-12 text-base"
+          />
+        </div>
+      )}
 
       {/* Monsters List */}
       <div className="grid gap-4">
-        {filteredMonsters.length > 0 ? (
+        {monsters.length === 0 ? (
+          <div className="text-center py-16">
+            <p className="text-lg text-muted-foreground mb-2">No {typeTitle.toLowerCase()} creatures found</p>
+            <p className="text-sm text-muted-foreground">
+              This creature type might not be available in the loaded sourcebooks.
+            </p>
+          </div>
+        ) : filteredMonsters.length > 0 ? (
           filteredMonsters.map((monster, index) => (
             <Card 
               key={`${monster.name}-${index}`}
@@ -162,11 +212,12 @@ export default function BestiaryList({ monsters, typeTitle, onSelectMonster, onB
         ) : (
           <div className="text-center py-8">
             <p className="text-muted-foreground">No monsters found matching your search.</p>
+            <p className="text-sm text-muted-foreground mt-2">Try adjusting your search terms.</p>
           </div>
         )}
       </div>
       
-      {filteredMonsters.length > 0 && (
+      {filteredMonsters.length > 0 && monsters.length > 0 && (
         <div className="text-center mt-8 text-sm text-muted-foreground">
           Showing {filteredMonsters.length} of {monsters.length} monsters
         </div>

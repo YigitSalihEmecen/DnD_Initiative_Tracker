@@ -135,7 +135,7 @@ export class DataSyncService {
 
   // Sync campaigns to cloud
   async syncToCloud(campaigns: Campaign[]): Promise<boolean> {
-    if (!this.user || !this.syncStatus.isOnline) {
+    if (!this.user || !this.syncStatus.isOnline || !db) {
       return false;
     }
 
@@ -170,7 +170,7 @@ export class DataSyncService {
 
   // Load campaigns from cloud
   async loadFromCloud(): Promise<Campaign[]> {
-    if (!this.user || !this.syncStatus.isOnline) {
+    if (!this.user || !this.syncStatus.isOnline || !db) {
       return this.loadLocalCampaigns();
     }
 
@@ -200,14 +200,14 @@ export class DataSyncService {
         syncError: error instanceof Error ? error.message : 'Load failed' 
       });
     }
-
+    
     // Fallback to local storage
     return this.loadLocalCampaigns();
   }
 
   // Start real-time sync listener
   private startSync() {
-    if (!this.user) return;
+    if (!this.user || !db) return;
 
     const userDocRef = doc(db, 'users', this.user.uid);
     this.unsubscribe = onSnapshot(userDocRef, (doc) => {
